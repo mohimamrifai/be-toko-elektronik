@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
+import { promoSliders } from './schema/promo-sliders.schema.js';
 import { topBanners } from './schema/top-banners.schema.js';
 
 const pool = new Pool({
@@ -22,6 +23,30 @@ async function seed() {
       href: '/promo/flash-sale',
       isActive: true,
       sortOrder: 2,
+    },
+  ]);
+
+  await db.insert(promoSliders).values([
+    {
+      title: 'Promo Handphone',
+      imageUrl: 'https://placehold.co/800x400/png?text=Promo+Handphone',
+      href: '/handphone',
+      isActive: true,
+      sortOrder: 1,
+    },
+    {
+      title: 'Promo Laptop',
+      imageUrl: 'https://placehold.co/800x400/png?text=Promo+Laptop',
+      href: '/categories/laptop',
+      isActive: true,
+      sortOrder: 2,
+    },
+    {
+      title: 'Promo Aksesoris',
+      imageUrl: 'https://placehold.co/800x400/png?text=Promo+Aksesoris',
+      href: '/categories/aksesoris',
+      isActive: true,
+      sortOrder: 3,
     },
   ]);
 

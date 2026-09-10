@@ -1,25 +1,27 @@
 import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DRIZZLE } from '../../database/database.constants.js';
-import { TopBannerService } from './top-banner.service.js';
-import { CreateTopBannerDto } from './dto/create-top-banner.dto.js';
-import { UpdateTopBannerDto } from './dto/update-top-banner.dto.js';
+import { CreatePromoSliderDto } from './dto/create-promo-slider.dto.js';
+import { UpdatePromoSliderDto } from './dto/update-promo-slider.dto.js';
+import { PromoSliderService } from './promo-slider.service.js';
 
-describe('TopBannerService', () => {
-  let service: TopBannerService;
+describe('PromoSliderService', () => {
+  let service: PromoSliderService;
 
-  const mockBanner = {
+  const mockSlider = {
     id: '11111111-1111-1111-1111-111111111111',
-    message: '🚀 Free shipping on orders over $50!',
-    href: '/promo/free-shipping',
+    title: 'Promo Handphone',
+    imageUrl: 'https://cdn.test.example.com/promo-sliders/handphone.jpg',
+    href: '/handphone',
   };
 
-  const mockBanners = [
-    mockBanner,
+  const mockSliders = [
+    mockSlider,
     {
       id: '22222222-2222-2222-2222-222222222222',
-      message: '⚡ Flash Sale hingga 70% — hanya hari ini!',
-      href: '/promo/flash-sale',
+      title: 'Promo Laptop',
+      imageUrl: 'https://cdn.test.example.com/promo-sliders/laptop.jpg',
+      href: '/categories/laptop',
     },
   ];
 
@@ -35,8 +37,8 @@ describe('TopBannerService', () => {
   const mockDeleteWhere = vi.fn(() => ({
     returning: mockReturning,
   }));
-  const mockOrderBy = vi.fn(() => Promise.resolve(mockBanners));
-  const mockLimit = vi.fn(() => Promise.resolve([mockBanner]));
+  const mockOrderBy = vi.fn(() => Promise.resolve(mockSliders));
+  const mockLimit = vi.fn(() => Promise.resolve([mockSlider]));
   const mockWhere = vi.fn(() => ({
     orderBy: mockOrderBy,
     limit: mockLimit,
@@ -65,7 +67,7 @@ describe('TopBannerService', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        TopBannerService,
+        PromoSliderService,
         {
           provide: DRIZZLE,
           useValue: mockDb,
@@ -73,10 +75,10 @@ describe('TopBannerService', () => {
       ],
     }).compile();
 
-    service = module.get<TopBannerService>(TopBannerService);
+    service = module.get<PromoSliderService>(PromoSliderService);
     vi.clearAllMocks();
-    mockReturning.mockResolvedValue([mockBanner]);
-    mockLimit.mockResolvedValue([mockBanner]);
+    mockReturning.mockResolvedValue([mockSlider]);
+    mockLimit.mockResolvedValue([mockSlider]);
   });
 
   it('should be defined', () => {
@@ -84,54 +86,56 @@ describe('TopBannerService', () => {
   });
 
   describe('create', () => {
-    it('should create and return a top banner', async () => {
-      const dto: CreateTopBannerDto = {
-        message: 'New banner',
-        href: '/promo/new',
+    it('should create and return a promo slider', async () => {
+      const dto: CreatePromoSliderDto = {
+        title: 'Promo Handphone',
+        imageUrl: mockSlider.imageUrl,
+        href: '/handphone',
       };
 
       const result = await service.create(dto);
 
       expect(mockDb.insert).toHaveBeenCalled();
       expect(mockValues).toHaveBeenCalledWith({
-        message: dto.message,
+        title: dto.title,
+        imageUrl: dto.imageUrl,
         href: dto.href,
         isActive: true,
         sortOrder: 0,
         startsAt: undefined,
         endsAt: undefined,
       });
-      expect(result).toEqual(mockBanner);
+      expect(result).toEqual(mockSlider);
     });
   });
 
   describe('findAllPublic', () => {
-    it('should return active top banners from database', async () => {
+    it('should return active promo sliders from database', async () => {
       const result = await service.findAllPublic();
 
       expect(mockDb.select).toHaveBeenCalled();
-      expect(result).toEqual(mockBanners);
+      expect(result).toEqual(mockSliders);
     });
   });
 
   describe('findAllAdmin', () => {
-    it('should return all top banners from database', async () => {
+    it('should return all promo sliders from database', async () => {
       const result = await service.findAllAdmin();
 
       expect(mockDb.select).toHaveBeenCalled();
-      expect(result).toEqual(mockBanners);
+      expect(result).toEqual(mockSliders);
     });
   });
 
   describe('findOnePublic', () => {
-    it('should return top banner by id from database', async () => {
-      const result = await service.findOnePublic(mockBanner.id);
+    it('should return promo slider by id from database', async () => {
+      const result = await service.findOnePublic(mockSlider.id);
 
       expect(mockDb.select).toHaveBeenCalled();
-      expect(result).toEqual(mockBanner);
+      expect(result).toEqual(mockSlider);
     });
 
-    it('should throw NotFoundException when banner not found', async () => {
+    it('should throw NotFoundException when promo slider not found', async () => {
       mockLimit.mockResolvedValueOnce([]);
 
       await expect(
@@ -141,30 +145,30 @@ describe('TopBannerService', () => {
   });
 
   describe('findOneAdmin', () => {
-    it('should return top banner by id from database', async () => {
-      const result = await service.findOneAdmin(mockBanner.id);
+    it('should return promo slider by id from database', async () => {
+      const result = await service.findOneAdmin(mockSlider.id);
 
       expect(mockDb.select).toHaveBeenCalled();
-      expect(result).toEqual(mockBanner);
+      expect(result).toEqual(mockSlider);
     });
   });
 
   describe('update', () => {
-    it('should update and return a top banner', async () => {
-      const dto: UpdateTopBannerDto = {
-        message: 'Updated banner',
+    it('should update and return a promo slider', async () => {
+      const dto: UpdatePromoSliderDto = {
+        title: 'Promo Handphone Updated',
       };
 
-      const result = await service.update(mockBanner.id, dto);
+      const result = await service.update(mockSlider.id, dto);
 
       expect(mockDb.update).toHaveBeenCalled();
       expect(mockSet).toHaveBeenCalledWith({
-        message: dto.message,
+        title: dto.title,
       });
-      expect(result).toEqual(mockBanner);
+      expect(result).toEqual(mockSlider);
     });
 
-    it('should throw NotFoundException when banner not found', async () => {
+    it('should throw NotFoundException when promo slider not found', async () => {
       mockReturning.mockResolvedValueOnce([]);
 
       await expect(
@@ -174,14 +178,14 @@ describe('TopBannerService', () => {
   });
 
   describe('remove', () => {
-    it('should remove and return a top banner', async () => {
-      const result = await service.remove(mockBanner.id);
+    it('should remove and return a promo slider', async () => {
+      const result = await service.remove(mockSlider.id);
 
       expect(mockDb.delete).toHaveBeenCalled();
-      expect(result).toEqual(mockBanner);
+      expect(result).toEqual(mockSlider);
     });
 
-    it('should throw NotFoundException when banner not found', async () => {
+    it('should throw NotFoundException when promo slider not found', async () => {
       mockReturning.mockResolvedValueOnce([]);
 
       await expect(

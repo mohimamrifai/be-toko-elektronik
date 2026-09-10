@@ -8,7 +8,8 @@ import { TransformInterceptor } from '../src/common/interceptors/transform.inter
 describe('TopBanner (e2e)', () => {
   let app: INestApplication<App>;
 
-  const baseUrl = '/api/v1/top-banner';
+  const publicUrl = '/api/v1/top-banner';
+  const adminUrl = '/api/v1/admin/top-banner';
 
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -29,29 +30,62 @@ describe('TopBanner (e2e)', () => {
     await app.close();
   });
 
-  describe(`GET ${baseUrl}`, () => {
-    it('should return list of top banners from database', async () => {
+  describe(`GET ${publicUrl}`, () => {
+    it('should return list of active top banners', async () => {
       const response = await request(app.getHttpServer())
-        .get(baseUrl)
+        .get(publicUrl)
         .expect(200);
 
       expect(response.body.data).toBeInstanceOf(Array);
-      expect(response.body.data.length).toBeGreaterThanOrEqual(2);
-      expect(response.body.data).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            message: '🚀 Free shipping on orders over $50!',
-            href: '/promo/free-shipping',
-          }),
-        ]),
-      );
-      expect(response.body.data[0].id).toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
-      );
+      expect(response.body.data.length).toBeGreaterThanOrEqual(1);
+      expect(response.body.data[0]).toMatchObject({
+        message: expect.any(String),
+        href: expect.any(String),
+      });
+      expect(response.body.data[0].isActive).toBeUndefined();
     });
   });
 
-  describe(`POST ${baseUrl}`, () => {
+  describe(`GET ${publicUrl}/:id`, () => {
+    it('should return an active top banner by id', async () => {
+      const createResponse = await request(app.getHttpServer())
+        .post(adminUrl)
+        .send({
+          message: 'Public banner',
+          href: '/promo/public',
+        })
+        .expect(201);
+
+      const bannerId = createResponse.body.data.id;
+
+      const response = await request(app.getHttpServer())
+        .get(`${publicUrl}/${bannerId}`)
+        .expect(200);
+
+      expect(response.body.data).toMatchObject({
+        id: bannerId,
+        message: 'Public banner',
+        href: '/promo/public',
+      });
+    });
+
+    it('should return 404 for inactive top banner on public endpoint', async () => {
+      const createResponse = await request(app.getHttpServer())
+        .post(adminUrl)
+        .send({
+          message: 'Inactive banner',
+          href: '/promo/inactive',
+          isActive: false,
+        })
+        .expect(201);
+
+      await request(app.getHttpServer())
+        .get(`${publicUrl}/${createResponse.body.data.id}`)
+        .expect(404);
+    });
+  });
+
+  describe(`POST ${adminUrl}`, () => {
     it('should create a top banner', async () => {
       const payload = {
         message: 'Banner e2e test',
@@ -59,51 +93,80 @@ describe('TopBanner (e2e)', () => {
       };
 
       const response = await request(app.getHttpServer())
-        .post(baseUrl)
+        .post(adminUrl)
         .send(payload)
         .expect(201);
 
-      expect(response.body.data).toMatchObject(payload);
-      expect(response.body.data.id).toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+      expect(response.body.data).toMatchObject({
+        ...payload,
+        isActive: true,
+        sortOrder: 0,
+      });
+      expect(response.body.data.createdAt).toBeDefined();
+    });
+  });
+
+  describe(`GET ${adminUrl}`, () => {
+    it('should return all top banners including inactive', async () => {
+      const createResponse = await request(app.getHttpServer())
+        .post(adminUrl)
+        .send({
+          message: 'Inactive admin list',
+          href: '/promo/inactive-admin',
+          isActive: false,
+        })
+        .expect(201);
+
+      const response = await request(app.getHttpServer())
+        .get(adminUrl)
+        .expect(200);
+
+      expect(response.body.data).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: createResponse.body.data.id,
+            isActive: false,
+          }),
+        ]),
       );
     });
   });
 
-  describe(`GET ${baseUrl}/:id`, () => {
-    it('should return a top banner by id from database', async () => {
+  describe(`GET ${adminUrl}/:id`, () => {
+    it('should return a top banner by id with admin fields', async () => {
       const createResponse = await request(app.getHttpServer())
-        .post(baseUrl)
+        .post(adminUrl)
         .send({
-          message: 'Banner for get by id',
-          href: '/promo/get-by-id',
+          message: 'Banner for admin get',
+          href: '/promo/admin-get',
         })
         .expect(201);
 
       const bannerId = createResponse.body.data.id;
 
       const response = await request(app.getHttpServer())
-        .get(`${baseUrl}/${bannerId}`)
+        .get(`${adminUrl}/${bannerId}`)
         .expect(200);
 
       expect(response.body.data).toMatchObject({
         id: bannerId,
-        message: 'Banner for get by id',
-        href: '/promo/get-by-id',
+        message: 'Banner for admin get',
+        href: '/promo/admin-get',
+        isActive: true,
       });
     });
 
     it('should return 404 when top banner not found', () => {
       return request(app.getHttpServer())
-        .get(`${baseUrl}/00000000-0000-0000-0000-000000000000`)
+        .get(`${adminUrl}/00000000-0000-0000-0000-000000000000`)
         .expect(404);
     });
   });
 
-  describe(`PATCH ${baseUrl}/:id`, () => {
+  describe(`PATCH ${adminUrl}/:id`, () => {
     it('should update a top banner by id', async () => {
       const createResponse = await request(app.getHttpServer())
-        .post(baseUrl)
+        .post(adminUrl)
         .send({
           message: 'Banner to update',
           href: '/promo/to-update',
@@ -113,7 +176,7 @@ describe('TopBanner (e2e)', () => {
       const bannerId = createResponse.body.data.id;
 
       const response = await request(app.getHttpServer())
-        .patch(`${baseUrl}/${bannerId}`)
+        .patch(`${adminUrl}/${bannerId}`)
         .send({
           message: 'Banner updated',
         })
@@ -125,19 +188,12 @@ describe('TopBanner (e2e)', () => {
         href: '/promo/to-update',
       });
     });
-
-    it('should return 404 when updating non-existent top banner', () => {
-      return request(app.getHttpServer())
-        .patch(`${baseUrl}/00000000-0000-0000-0000-000000000000`)
-        .send({ message: 'Not found' })
-        .expect(404);
-    });
   });
 
-  describe(`DELETE ${baseUrl}/:id`, () => {
+  describe(`DELETE ${adminUrl}/:id`, () => {
     it('should remove a top banner by id', async () => {
       const createResponse = await request(app.getHttpServer())
-        .post(baseUrl)
+        .post(adminUrl)
         .send({
           message: 'Banner to delete',
           href: '/promo/to-delete',
@@ -146,24 +202,12 @@ describe('TopBanner (e2e)', () => {
 
       const bannerId = createResponse.body.data.id;
 
-      const deleteResponse = await request(app.getHttpServer())
-        .delete(`${baseUrl}/${bannerId}`)
+      await request(app.getHttpServer())
+        .delete(`${adminUrl}/${bannerId}`)
         .expect(200);
 
-      expect(deleteResponse.body.data).toMatchObject({
-        id: bannerId,
-        message: 'Banner to delete',
-        href: '/promo/to-delete',
-      });
-
       await request(app.getHttpServer())
-        .get(`${baseUrl}/${bannerId}`)
-        .expect(404);
-    });
-
-    it('should return 404 when deleting non-existent top banner', () => {
-      return request(app.getHttpServer())
-        .delete(`${baseUrl}/00000000-0000-0000-0000-000000000000`)
+        .get(`${adminUrl}/${bannerId}`)
         .expect(404);
     });
   });

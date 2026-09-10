@@ -12,6 +12,11 @@ export default defineConfig({
       DATABASE_URL:
         process.env.DATABASE_URL ??
         'postgresql://postgres:postgres@localhost:5433/toko_elektronik',
+      CLOUDINARY_CLOUD_NAME:
+        process.env.CLOUDINARY_CLOUD_NAME ?? 'test-cloud',
+      CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY ?? 'test-api-key',
+      CLOUDINARY_API_SECRET:
+        process.env.CLOUDINARY_API_SECRET ?? 'test-api-secret',
     },
   },
 });

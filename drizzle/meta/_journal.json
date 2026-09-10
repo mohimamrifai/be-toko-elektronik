@@ -8,6 +8,13 @@
       "when": 1789017551843,
       "tag": "0000_magenta_valkyrie",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789046488412,
+      "tag": "0001_classy_moondragon",
+      "breakpoints": true
     }
   ]
 }

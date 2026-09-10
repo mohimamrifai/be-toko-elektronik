@@ -1,9 +1,10 @@
 import { Module } from '@nestjs/common';
-import { TopBannerService } from './top-banner.service.js';
+import { AdminTopBannerController } from './admin-top-banner.controller.js';
 import { TopBannerController } from './top-banner.controller.js';
+import { TopBannerService } from './top-banner.service.js';
 
 @Module({
-  controllers: [TopBannerController],
+  controllers: [TopBannerController, AdminTopBannerController],
   providers: [TopBannerService],
 })
 export class TopBannerModule {}
