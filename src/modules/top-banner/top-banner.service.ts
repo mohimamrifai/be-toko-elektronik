@@ -6,21 +6,39 @@ import { topBanners } from '../../database/schema/top-banners.schema.js';
 import { CreateTopBannerDto } from './dto/create-top-banner.dto.js';
 import { UpdateTopBannerDto } from './dto/update-top-banner.dto.js';
 
+const publicBannerFields = {
+  id: topBanners.id,
+  message: topBanners.message,
+  href: topBanners.href,
+};
+
 @Injectable()
 export class TopBannerService {
   constructor(@Inject(DRIZZLE) private readonly db: Database) {}
 
-  create(createTopBannerDto: CreateTopBannerDto) {
-    return 'This action adds a new topBanner';
+  async create(createTopBannerDto: CreateTopBannerDto) {
+    const [banner] = await this.db
+      .insert(topBanners)
+      .values({
+        message: createTopBannerDto.message,
+        href: createTopBannerDto.href,
+        isActive: createTopBannerDto.isActive ?? true,
+        sortOrder: createTopBannerDto.sortOrder ?? 0,
+        startsAt: createTopBannerDto.startsAt
+          ? new Date(createTopBannerDto.startsAt)
+          : undefined,
+        endsAt: createTopBannerDto.endsAt
+          ? new Date(createTopBannerDto.endsAt)
+          : undefined,
+      })
+      .returning(publicBannerFields);
+
+    return banner;
   }
 
   findAll() {
     return this.db
-      .select({
-        id: topBanners.id,
-        message: topBanners.message,
-        href: topBanners.href,
-      })
+      .select(publicBannerFields)
       .from(topBanners)
       .where(eq(topBanners.isActive, true))
       .orderBy(asc(topBanners.sortOrder));
@@ -28,11 +46,7 @@ export class TopBannerService {
 
   async findOne(id: string) {
     const [banner] = await this.db
-      .select({
-        id: topBanners.id,
-        message: topBanners.message,
-        href: topBanners.href,
-      })
+      .select(publicBannerFields)
       .from(topBanners)
       .where(eq(topBanners.id, id))
       .limit(1);
@@ -44,11 +58,53 @@ export class TopBannerService {
     return banner;
   }
 
-  update(id: number, updateTopBannerDto: UpdateTopBannerDto) {
-    return `This action updates a #${id} topBanner`;
+  async update(id: string, updateTopBannerDto: UpdateTopBannerDto) {
+    const [banner] = await this.db
+      .update(topBanners)
+      .set({
+        ...(updateTopBannerDto.message !== undefined && {
+          message: updateTopBannerDto.message,
+        }),
+        ...(updateTopBannerDto.href !== undefined && {
+          href: updateTopBannerDto.href,
+        }),
+        ...(updateTopBannerDto.isActive !== undefined && {
+          isActive: updateTopBannerDto.isActive,
+        }),
+        ...(updateTopBannerDto.sortOrder !== undefined && {
+          sortOrder: updateTopBannerDto.sortOrder,
+        }),
+        ...(updateTopBannerDto.startsAt !== undefined && {
+          startsAt: updateTopBannerDto.startsAt
+            ? new Date(updateTopBannerDto.startsAt)
+            : null,
+        }),
+        ...(updateTopBannerDto.endsAt !== undefined && {
+          endsAt: updateTopBannerDto.endsAt
+            ? new Date(updateTopBannerDto.endsAt)
+            : null,
+        }),
+      })
+      .where(eq(topBanners.id, id))
+      .returning(publicBannerFields);
+
+    if (!banner) {
+      throw new NotFoundException(`Top banner #${id} not found`);
+    }
+
+    return banner;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} topBanner`;
+  async remove(id: string) {
+    const [banner] = await this.db
+      .delete(topBanners)
+      .where(eq(topBanners.id, id))
+      .returning(publicBannerFields);
+
+    if (!banner) {
+      throw new NotFoundException(`Top banner #${id} not found`);
+    }
+
+    return banner;
   }
 }

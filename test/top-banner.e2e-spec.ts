@@ -37,14 +37,14 @@ describe('TopBanner (e2e)', () => {
 
       expect(response.body.data).toBeInstanceOf(Array);
       expect(response.body.data.length).toBeGreaterThanOrEqual(2);
-      expect(response.body.data[0]).toMatchObject({
-        message: '🚀 Free shipping on orders over $50!',
-        href: '/promo/free-shipping',
-      });
-      expect(response.body.data[1]).toMatchObject({
-        message: '⚡ Flash Sale hingga 70% — hanya hari ini!',
-        href: '/promo/flash-sale',
-      });
+      expect(response.body.data).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            message: '🚀 Free shipping on orders over $50!',
+            href: '/promo/free-shipping',
+          }),
+        ]),
+      );
       expect(response.body.data[0].id).toMatch(
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
       );
@@ -52,24 +52,35 @@ describe('TopBanner (e2e)', () => {
   });
 
   describe(`POST ${baseUrl}`, () => {
-    it('should create a top banner', () => {
-      return request(app.getHttpServer())
+    it('should create a top banner', async () => {
+      const payload = {
+        message: 'Banner e2e test',
+        href: '/promo/e2e-test',
+      };
+
+      const response = await request(app.getHttpServer())
         .post(baseUrl)
-        .send({})
-        .expect(201)
-        .expect({
-          data: 'This action adds a new topBanner',
-        });
+        .send(payload)
+        .expect(201);
+
+      expect(response.body.data).toMatchObject(payload);
+      expect(response.body.data.id).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+      );
     });
   });
 
   describe(`GET ${baseUrl}/:id`, () => {
     it('should return a top banner by id from database', async () => {
-      const listResponse = await request(app.getHttpServer())
-        .get(baseUrl)
-        .expect(200);
+      const createResponse = await request(app.getHttpServer())
+        .post(baseUrl)
+        .send({
+          message: 'Banner for get by id',
+          href: '/promo/get-by-id',
+        })
+        .expect(201);
 
-      const bannerId = listResponse.body.data[0].id;
+      const bannerId = createResponse.body.data.id;
 
       const response = await request(app.getHttpServer())
         .get(`${baseUrl}/${bannerId}`)
@@ -77,8 +88,8 @@ describe('TopBanner (e2e)', () => {
 
       expect(response.body.data).toMatchObject({
         id: bannerId,
-        message: '🚀 Free shipping on orders over $50!',
-        href: '/promo/free-shipping',
+        message: 'Banner for get by id',
+        href: '/promo/get-by-id',
       });
     });
 
@@ -90,25 +101,70 @@ describe('TopBanner (e2e)', () => {
   });
 
   describe(`PATCH ${baseUrl}/:id`, () => {
-    it('should update a top banner by id', () => {
+    it('should update a top banner by id', async () => {
+      const createResponse = await request(app.getHttpServer())
+        .post(baseUrl)
+        .send({
+          message: 'Banner to update',
+          href: '/promo/to-update',
+        })
+        .expect(201);
+
+      const bannerId = createResponse.body.data.id;
+
+      const response = await request(app.getHttpServer())
+        .patch(`${baseUrl}/${bannerId}`)
+        .send({
+          message: 'Banner updated',
+        })
+        .expect(200);
+
+      expect(response.body.data).toMatchObject({
+        id: bannerId,
+        message: 'Banner updated',
+        href: '/promo/to-update',
+      });
+    });
+
+    it('should return 404 when updating non-existent top banner', () => {
       return request(app.getHttpServer())
-        .patch(`${baseUrl}/2`)
-        .send({})
-        .expect(200)
-        .expect({
-          data: 'This action updates a #2 topBanner',
-        });
+        .patch(`${baseUrl}/00000000-0000-0000-0000-000000000000`)
+        .send({ message: 'Not found' })
+        .expect(404);
     });
   });
 
   describe(`DELETE ${baseUrl}/:id`, () => {
-    it('should remove a top banner by id', () => {
+    it('should remove a top banner by id', async () => {
+      const createResponse = await request(app.getHttpServer())
+        .post(baseUrl)
+        .send({
+          message: 'Banner to delete',
+          href: '/promo/to-delete',
+        })
+        .expect(201);
+
+      const bannerId = createResponse.body.data.id;
+
+      const deleteResponse = await request(app.getHttpServer())
+        .delete(`${baseUrl}/${bannerId}`)
+        .expect(200);
+
+      expect(deleteResponse.body.data).toMatchObject({
+        id: bannerId,
+        message: 'Banner to delete',
+        href: '/promo/to-delete',
+      });
+
+      await request(app.getHttpServer())
+        .get(`${baseUrl}/${bannerId}`)
+        .expect(404);
+    });
+
+    it('should return 404 when deleting non-existent top banner', () => {
       return request(app.getHttpServer())
-        .delete(`${baseUrl}/3`)
-        .expect(200)
-        .expect({
-          data: 'This action removes a #3 topBanner',
-        });
+        .delete(`${baseUrl}/00000000-0000-0000-0000-000000000000`)
+        .expect(404);
     });
   });
 });

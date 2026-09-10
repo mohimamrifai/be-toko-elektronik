@@ -16,6 +16,12 @@ describe('TopBannerController', () => {
     remove: vi.fn(),
   };
 
+  const mockBanner = {
+    id: '11111111-1111-1111-1111-111111111111',
+    message: '🚀 Free shipping on orders over $50!',
+    href: '/promo/free-shipping',
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [TopBannerController],
@@ -38,80 +44,70 @@ describe('TopBannerController', () => {
   });
 
   describe('create', () => {
-    it('should call service.create with dto and return result', () => {
-      const dto: CreateTopBannerDto = {};
-      const expected = 'This action adds a new topBanner';
+    it('should call service.create with dto and return result', async () => {
+      const dto: CreateTopBannerDto = {
+        message: 'New banner',
+        href: '/promo/new',
+      };
 
-      mockTopBannerService.create.mockReturnValue(expected);
+      mockTopBannerService.create.mockResolvedValue(mockBanner);
 
-      const result = controller.create(dto);
+      const result = await controller.create(dto);
 
       expect(service.create).toHaveBeenCalledWith(dto);
-      expect(result).toBe(expected);
+      expect(result).toEqual(mockBanner);
     });
   });
 
   describe('findAll', () => {
     it('should call service.findAll and return result', async () => {
-      const expected = [
-        {
-          id: '11111111-1111-1111-1111-111111111111',
-          message: '🚀 Free shipping on orders over $50!',
-          href: '/promo/free-shipping',
-        },
-      ];
-
-      mockTopBannerService.findAll.mockResolvedValue(expected);
+      mockTopBannerService.findAll.mockResolvedValue([mockBanner]);
 
       const result = await controller.findAll();
 
       expect(service.findAll).toHaveBeenCalled();
-      expect(result).toEqual(expected);
+      expect(result).toEqual([mockBanner]);
     });
   });
 
   describe('findOne', () => {
     it('should call service.findOne with id and return result', async () => {
-      const id = '11111111-1111-1111-1111-111111111111';
-      const expected = {
-        id,
-        message: '🚀 Free shipping on orders over $50!',
-        href: '/promo/free-shipping',
-      };
+      mockTopBannerService.findOne.mockResolvedValue(mockBanner);
 
-      mockTopBannerService.findOne.mockResolvedValue(expected);
+      const result = await controller.findOne(mockBanner.id);
 
-      const result = await controller.findOne(id);
-
-      expect(service.findOne).toHaveBeenCalledWith(id);
-      expect(result).toEqual(expected);
+      expect(service.findOne).toHaveBeenCalledWith(mockBanner.id);
+      expect(result).toEqual(mockBanner);
     });
   });
 
   describe('update', () => {
-    it('should call service.update with parsed id and dto and return result', () => {
-      const dto: UpdateTopBannerDto = {};
-      const expected = 'This action updates a #2 topBanner';
+    it('should call service.update with id and dto and return result', async () => {
+      const dto: UpdateTopBannerDto = {
+        message: 'Updated banner',
+      };
+      const expected = {
+        ...mockBanner,
+        message: 'Updated banner',
+      };
 
-      mockTopBannerService.update.mockReturnValue(expected);
+      mockTopBannerService.update.mockResolvedValue(expected);
 
-      const result = controller.update('2', dto);
+      const result = await controller.update(mockBanner.id, dto);
 
-      expect(service.update).toHaveBeenCalledWith(2, dto);
-      expect(result).toBe(expected);
+      expect(service.update).toHaveBeenCalledWith(mockBanner.id, dto);
+      expect(result).toEqual(expected);
     });
   });
 
   describe('remove', () => {
-    it('should call service.remove with parsed id and return result', () => {
-      const expected = 'This action removes a #3 topBanner';
+    it('should call service.remove with id and return result', async () => {
+      mockTopBannerService.remove.mockResolvedValue(mockBanner);
 
-      mockTopBannerService.remove.mockReturnValue(expected);
+      const result = await controller.remove(mockBanner.id);
 
-      const result = controller.remove('3');
-
-      expect(service.remove).toHaveBeenCalledWith(3);
-      expect(result).toBe(expected);
+      expect(service.remove).toHaveBeenCalledWith(mockBanner.id);
+      expect(result).toEqual(mockBanner);
     });
   });
 });

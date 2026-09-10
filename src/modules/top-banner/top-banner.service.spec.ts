@@ -23,6 +23,18 @@ describe('TopBannerService', () => {
     },
   ];
 
+  const mockReturning = vi.fn();
+  const mockValues = vi.fn(() => ({
+    returning: mockReturning,
+  }));
+  const mockSet = vi.fn(() => ({
+    where: vi.fn(() => ({
+      returning: mockReturning,
+    })),
+  }));
+  const mockDeleteWhere = vi.fn(() => ({
+    returning: mockReturning,
+  }));
   const mockOrderBy = vi.fn(() => Promise.resolve(mockBanners));
   const mockLimit = vi.fn(() => Promise.resolve([mockBanner]));
   const mockWhere = vi.fn(() => ({
@@ -38,6 +50,15 @@ describe('TopBannerService', () => {
 
   const mockDb = {
     select: mockSelect,
+    insert: vi.fn(() => ({
+      values: mockValues,
+    })),
+    update: vi.fn(() => ({
+      set: mockSet,
+    })),
+    delete: vi.fn(() => ({
+      where: mockDeleteWhere,
+    })),
   };
 
   beforeEach(async () => {
@@ -53,6 +74,7 @@ describe('TopBannerService', () => {
 
     service = module.get<TopBannerService>(TopBannerService);
     vi.clearAllMocks();
+    mockReturning.mockResolvedValue([mockBanner]);
     mockLimit.mockResolvedValue([mockBanner]);
   });
 
@@ -61,10 +83,24 @@ describe('TopBannerService', () => {
   });
 
   describe('create', () => {
-    it('should return create message', () => {
-      const dto: CreateTopBannerDto = {};
+    it('should create and return a top banner', async () => {
+      const dto: CreateTopBannerDto = {
+        message: 'New banner',
+        href: '/promo/new',
+      };
 
-      expect(service.create(dto)).toBe('This action adds a new topBanner');
+      const result = await service.create(dto);
+
+      expect(mockDb.insert).toHaveBeenCalled();
+      expect(mockValues).toHaveBeenCalledWith({
+        message: dto.message,
+        href: dto.href,
+        isActive: true,
+        sortOrder: 0,
+        startsAt: undefined,
+        endsAt: undefined,
+      });
+      expect(result).toEqual(mockBanner);
     });
   });
 
@@ -95,16 +131,43 @@ describe('TopBannerService', () => {
   });
 
   describe('update', () => {
-    it('should return update message with id', () => {
-      const dto: UpdateTopBannerDto = {};
+    it('should update and return a top banner', async () => {
+      const dto: UpdateTopBannerDto = {
+        message: 'Updated banner',
+      };
 
-      expect(service.update(5, dto)).toBe('This action updates a #5 topBanner');
+      const result = await service.update(mockBanner.id, dto);
+
+      expect(mockDb.update).toHaveBeenCalled();
+      expect(mockSet).toHaveBeenCalledWith({
+        message: dto.message,
+      });
+      expect(result).toEqual(mockBanner);
+    });
+
+    it('should throw NotFoundException when banner not found', async () => {
+      mockReturning.mockResolvedValueOnce([]);
+
+      await expect(
+        service.update('00000000-0000-0000-0000-000000000000', {}),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
   describe('remove', () => {
-    it('should return remove message with id', () => {
-      expect(service.remove(7)).toBe('This action removes a #7 topBanner');
+    it('should remove and return a top banner', async () => {
+      const result = await service.remove(mockBanner.id);
+
+      expect(mockDb.delete).toHaveBeenCalled();
+      expect(result).toEqual(mockBanner);
+    });
+
+    it('should throw NotFoundException when banner not found', async () => {
+      mockReturning.mockResolvedValueOnce([]);
+
+      await expect(
+        service.remove('00000000-0000-0000-0000-000000000000'),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });

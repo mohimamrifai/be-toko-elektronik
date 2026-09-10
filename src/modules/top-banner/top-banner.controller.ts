@@ -24,11 +24,11 @@ export class TopBannerController {
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateTopBannerDto: UpdateTopBannerDto) {
-    return this.topBannerService.update(+id, updateTopBannerDto);
+    return this.topBannerService.update(id, updateTopBannerDto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.topBannerService.remove(+id);
+    return this.topBannerService.remove(id);
   }
 }
