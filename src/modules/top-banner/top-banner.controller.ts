@@ -19,7 +19,7 @@ export class TopBannerController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.topBannerService.findOne(+id);
+    return this.topBannerService.findOne(id);
   }
 
   @Patch(':id')

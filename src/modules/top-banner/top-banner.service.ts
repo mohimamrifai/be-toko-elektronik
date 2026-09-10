@@ -1,36 +1,47 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { asc, eq } from 'drizzle-orm';
+import { DRIZZLE } from '../../database/database.constants.js';
+import type { Database } from '../../database/database.types.js';
+import { topBanners } from '../../database/schema/top-banners.schema.js';
 import { CreateTopBannerDto } from './dto/create-top-banner.dto.js';
 import { UpdateTopBannerDto } from './dto/update-top-banner.dto.js';
 
 @Injectable()
 export class TopBannerService {
+  constructor(@Inject(DRIZZLE) private readonly db: Database) {}
+
   create(createTopBannerDto: CreateTopBannerDto) {
     return 'This action adds a new topBanner';
   }
 
   findAll() {
-    return [
-      {
-        id: '1',
-        message: '🚀 Free shipping on orders over $50!',
-        href: '/promo/free-shipping',
-        // isActive: true,
-        // startsAt: '2026-09-01T00:00:00.000Z',
-        // endsAt: '2026-12-31T23:59:59.000Z',
-      },
-      {
-        id: '2',
-        message: '⚡ Flash Sale hingga 70% — hanya hari ini!',
-        href: '/promo/flash-sale',
-        // isActive: false,
-        // startsAt: '2026-09-10T00:00:00.000Z',
-        // endsAt: '2026-09-10T23:59:59.000Z',
-      },
-    ];
+    return this.db
+      .select({
+        id: topBanners.id,
+        message: topBanners.message,
+        href: topBanners.href,
+      })
+      .from(topBanners)
+      .where(eq(topBanners.isActive, true))
+      .orderBy(asc(topBanners.sortOrder));
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} topBanner`;
+  async findOne(id: string) {
+    const [banner] = await this.db
+      .select({
+        id: topBanners.id,
+        message: topBanners.message,
+        href: topBanners.href,
+      })
+      .from(topBanners)
+      .where(eq(topBanners.id, id))
+      .limit(1);
+
+    if (!banner) {
+      throw new NotFoundException(`Top banner #${id} not found`);
+    }
+
+    return banner;
   }
 
   update(id: number, updateTopBannerDto: UpdateTopBannerDto) {

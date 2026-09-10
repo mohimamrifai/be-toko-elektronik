@@ -52,18 +52,18 @@ describe('TopBannerController', () => {
   });
 
   describe('findAll', () => {
-    it('should call service.findAll and return result', () => {
+    it('should call service.findAll and return result', async () => {
       const expected = [
         {
-          id: '1',
+          id: '11111111-1111-1111-1111-111111111111',
           message: '🚀 Free shipping on orders over $50!',
           href: '/promo/free-shipping',
         },
       ];
 
-      mockTopBannerService.findAll.mockReturnValue(expected);
+      mockTopBannerService.findAll.mockResolvedValue(expected);
 
-      const result = controller.findAll();
+      const result = await controller.findAll();
 
       expect(service.findAll).toHaveBeenCalled();
       expect(result).toEqual(expected);
@@ -71,15 +71,20 @@ describe('TopBannerController', () => {
   });
 
   describe('findOne', () => {
-    it('should call service.findOne with parsed id and return result', () => {
-      const expected = 'This action returns a #1 topBanner';
+    it('should call service.findOne with id and return result', async () => {
+      const id = '11111111-1111-1111-1111-111111111111';
+      const expected = {
+        id,
+        message: '🚀 Free shipping on orders over $50!',
+        href: '/promo/free-shipping',
+      };
 
-      mockTopBannerService.findOne.mockReturnValue(expected);
+      mockTopBannerService.findOne.mockResolvedValue(expected);
 
-      const result = controller.findOne('1');
+      const result = await controller.findOne(id);
 
-      expect(service.findOne).toHaveBeenCalledWith(1);
-      expect(result).toBe(expected);
+      expect(service.findOne).toHaveBeenCalledWith(id);
+      expect(result).toEqual(expected);
     });
   });
 

@@ -30,24 +30,24 @@ describe('TopBanner (e2e)', () => {
   });
 
   describe(`GET ${baseUrl}`, () => {
-    it('should return list of top banners', () => {
-      return request(app.getHttpServer())
+    it('should return list of top banners from database', async () => {
+      const response = await request(app.getHttpServer())
         .get(baseUrl)
-        .expect(200)
-        .expect({
-          data: [
-            {
-              id: '1',
-              message: '🚀 Free shipping on orders over $50!',
-              href: '/promo/free-shipping',
-            },
-            {
-              id: '2',
-              message: '⚡ Flash Sale hingga 70% — hanya hari ini!',
-              href: '/promo/flash-sale',
-            },
-          ],
-        });
+        .expect(200);
+
+      expect(response.body.data).toBeInstanceOf(Array);
+      expect(response.body.data.length).toBeGreaterThanOrEqual(2);
+      expect(response.body.data[0]).toMatchObject({
+        message: '🚀 Free shipping on orders over $50!',
+        href: '/promo/free-shipping',
+      });
+      expect(response.body.data[1]).toMatchObject({
+        message: '⚡ Flash Sale hingga 70% — hanya hari ini!',
+        href: '/promo/flash-sale',
+      });
+      expect(response.body.data[0].id).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+      );
     });
   });
 
@@ -64,13 +64,28 @@ describe('TopBanner (e2e)', () => {
   });
 
   describe(`GET ${baseUrl}/:id`, () => {
-    it('should return a top banner by id', () => {
+    it('should return a top banner by id from database', async () => {
+      const listResponse = await request(app.getHttpServer())
+        .get(baseUrl)
+        .expect(200);
+
+      const bannerId = listResponse.body.data[0].id;
+
+      const response = await request(app.getHttpServer())
+        .get(`${baseUrl}/${bannerId}`)
+        .expect(200);
+
+      expect(response.body.data).toMatchObject({
+        id: bannerId,
+        message: '🚀 Free shipping on orders over $50!',
+        href: '/promo/free-shipping',
+      });
+    });
+
+    it('should return 404 when top banner not found', () => {
       return request(app.getHttpServer())
-        .get(`${baseUrl}/1`)
-        .expect(200)
-        .expect({
-          data: 'This action returns a #1 topBanner',
-        });
+        .get(`${baseUrl}/00000000-0000-0000-0000-000000000000`)
+        .expect(404);
     });
   });
 
