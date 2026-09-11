@@ -1,16 +1,24 @@
 import 'dotenv/config';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
+import * as schema from './schema/index.js';
 import { promoSliders } from './schema/promo-sliders.schema.js';
 import { topBanners } from './schema/top-banners.schema.js';
+import { seedCatalog } from './seeds/catalog.seed.js';
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
-const db = drizzle(pool, { casing: 'snake_case' });
+const db = drizzle(pool, { schema, casing: 'snake_case' });
 
-async function seed() {
+async function seedTopBanners() {
+  const existing = await db.select({ id: topBanners.id }).from(topBanners).limit(1);
+
+  if (existing.length > 0) {
+    return;
+  }
+
   await db.insert(topBanners).values([
     {
       message: '🚀 Free shipping on orders over $50!',
@@ -25,6 +33,17 @@ async function seed() {
       sortOrder: 2,
     },
   ]);
+}
+
+async function seedPromoSliders() {
+  const existing = await db
+    .select({ id: promoSliders.id })
+    .from(promoSliders)
+    .limit(1);
+
+  if (existing.length > 0) {
+    return;
+  }
 
   await db.insert(promoSliders).values([
     {
@@ -49,7 +68,12 @@ async function seed() {
       sortOrder: 3,
     },
   ]);
+}
 
+async function seed() {
+  await seedTopBanners();
+  await seedPromoSliders();
+  await seedCatalog(db);
   console.log('Seed completed');
 }
 
