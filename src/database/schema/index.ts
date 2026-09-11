@@ -6,3 +6,4 @@ export * from './products.schema.js';
 export * from './product-images.schema.js';
 export * from './product-specifications.schema.js';
 export * from './product-variants.schema.js';
+export * from './flash-sales.schema.js';
