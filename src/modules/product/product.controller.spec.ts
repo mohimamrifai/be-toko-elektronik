@@ -71,6 +71,7 @@ describe('ProductController', () => {
         limit: '8',
         category: 'handphone',
         brand: 'samsung',
+        search: 'smartphone',
         sort: 'termurah',
       });
 
@@ -79,6 +80,7 @@ describe('ProductController', () => {
         limit: 8,
         category: 'handphone',
         brand: 'samsung',
+        search: 'smartphone',
         sort: 'termurah',
       });
       expect(result).toEqual(mockListResponse);

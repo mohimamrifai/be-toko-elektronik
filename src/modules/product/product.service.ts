@@ -5,7 +5,9 @@ import {
   count,
   desc,
   eq,
+  ilike,
   inArray,
+  or,
   sql,
   type SQL,
 } from 'drizzle-orm';
@@ -28,6 +30,7 @@ export interface FindAllProductsOptions {
   limit?: number;
   category?: string;
   brand?: string;
+  search?: string;
   sort?: ProductSort;
 }
 
@@ -100,6 +103,15 @@ export class ProductService {
 
     if (options.brand) {
       conditions.push(eq(brands.slug, options.brand));
+    }
+
+    const search = options.search?.trim();
+
+    if (search) {
+      const term = `%${search}%`;
+      conditions.push(
+        or(ilike(products.name, term), ilike(products.description, term))!,
+      );
     }
 
     return conditions;

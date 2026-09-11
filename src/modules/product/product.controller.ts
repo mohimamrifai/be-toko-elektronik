@@ -13,6 +13,7 @@ export class ProductController {
       limit: query.limit ? Number(query.limit) : undefined,
       category: query.category,
       brand: query.brand,
+      search: query.search,
       sort: query.sort,
     });
   }

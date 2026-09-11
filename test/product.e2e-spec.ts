@@ -87,6 +87,23 @@ describe('Product (e2e)', () => {
       ]);
     });
 
+    it('should filter products by search query', async () => {
+      const suffix = `search-${Date.now()}`;
+      const seeded = await seedProductFixture(suffix);
+
+      const response = await request(app.getHttpServer())
+        .get(publicUrl)
+        .query({ search: `Smartphone Flagship ${suffix}` })
+        .expect(200);
+
+      expect(response.body.data.items).toEqual([
+        expect.objectContaining({
+          id: seeded.productId,
+          slug: seeded.slug,
+        }),
+      ]);
+    });
+
     it('should sort products by cheapest price', async () => {
       const suffix = `sort-${Date.now()}`;
       await seedProductFixture(suffix);

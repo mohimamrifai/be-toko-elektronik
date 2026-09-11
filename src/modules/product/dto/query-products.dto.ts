@@ -5,5 +5,6 @@ export class QueryProductsDto {
   limit?: string;
   category?: string;
   brand?: string;
+  search?: string;
   sort?: ProductSort;
 }
