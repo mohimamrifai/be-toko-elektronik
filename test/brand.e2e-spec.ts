@@ -4,6 +4,7 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module.js';
 import { TransformInterceptor } from '../src/common/interceptors/transform.interceptor.js';
+import { cleanupBrandById } from './helpers/e2e-artifact-cleanup.helper.js';
 import {
   closeBrandSeedPool,
   seedBrandFixture,
@@ -12,6 +13,7 @@ import { closeProductSeedPool } from './helpers/product-seed.helper.js';
 
 describe('Brand (e2e)', () => {
   let app: INestApplication<App>;
+  const seededBrandIds: string[] = [];
 
   const publicUrl = '/api/v1/brands';
 
@@ -31,6 +33,10 @@ describe('Brand (e2e)', () => {
   });
 
   afterEach(async () => {
+    for (const id of seededBrandIds.splice(0)) {
+      await cleanupBrandById(id);
+    }
+
     await app.close();
   });
 
@@ -42,6 +48,7 @@ describe('Brand (e2e)', () => {
   describe(`GET ${publicUrl}`, () => {
     it('should return list of active brands', async () => {
       const brand = await seedBrandFixture(`list-${Date.now()}`);
+      seededBrandIds.push(brand.id);
 
       const response = await request(app.getHttpServer())
         .get(publicUrl)
@@ -77,6 +84,7 @@ describe('Brand (e2e)', () => {
 
     it('should return 404 for inactive brand on public endpoint', async () => {
       const brand = await seedBrandFixture(`inactive-${Date.now()}`, false);
+      seededBrandIds.push(brand.id);
 
       await request(app.getHttpServer())
         .get(`${publicUrl}/${brand.slug}`)

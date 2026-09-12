@@ -8,9 +8,14 @@ import { StorageService } from '../src/storage/storage.service.js';
 
 describe('PromoSlider (e2e)', () => {
   let app: INestApplication<App>;
+  const createdSliderIds: string[] = [];
 
   const publicUrl = '/api/v1/promo-slider';
   const adminUrl = '/api/v1/admin/promo-slider';
+
+  function trackSlider(id: string) {
+    createdSliderIds.push(id);
+  }
   const uploadUrl = '/api/v1/storage/upload';
   const mockImageUrl =
     'https://res.cloudinary.com/test-cloud/image/upload/v1/promo-sliders/e2e.jpg';
@@ -43,6 +48,12 @@ describe('PromoSlider (e2e)', () => {
   });
 
   afterEach(async () => {
+    for (const id of createdSliderIds.splice(0)) {
+      await request(app.getHttpServer())
+        .delete(`${adminUrl}/${id}`)
+        .catch(() => undefined);
+    }
+
     await app.close();
   });
 
@@ -68,6 +79,7 @@ describe('PromoSlider (e2e)', () => {
           href: '/handphone',
         })
         .expect(201);
+      trackSlider(createResponse.body.data.id);
 
       const response = await request(app.getHttpServer())
         .get(publicUrl)
@@ -96,6 +108,7 @@ describe('PromoSlider (e2e)', () => {
           href: '/handphone',
         })
         .expect(201);
+      trackSlider(createResponse.body.data.id);
 
       const sliderId = createResponse.body.data.id;
 
@@ -121,6 +134,7 @@ describe('PromoSlider (e2e)', () => {
           isActive: false,
         })
         .expect(201);
+      trackSlider(createResponse.body.data.id);
 
       await request(app.getHttpServer())
         .get(`${publicUrl}/${createResponse.body.data.id}`)
@@ -140,6 +154,7 @@ describe('PromoSlider (e2e)', () => {
         .post(adminUrl)
         .send(payload)
         .expect(201);
+      trackSlider(response.body.data.id);
 
       expect(response.body.data).toMatchObject({
         ...payload,
@@ -160,6 +175,7 @@ describe('PromoSlider (e2e)', () => {
           href: '/categories/handphone',
         })
         .expect(201);
+      trackSlider(createResponse.body.data.id);
 
       const sliderId = createResponse.body.data.id;
 
@@ -187,6 +203,7 @@ describe('PromoSlider (e2e)', () => {
           href: '/handphone',
         })
         .expect(201);
+      trackSlider(createResponse.body.data.id);
 
       const sliderId = createResponse.body.data.id;
 
@@ -217,6 +234,7 @@ describe('PromoSlider (e2e)', () => {
           href: '/handphone',
         })
         .expect(201);
+      trackSlider(createResponse.body.data.id);
 
       const sliderId = createResponse.body.data.id;
 

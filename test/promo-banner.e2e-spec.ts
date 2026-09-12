@@ -7,9 +7,14 @@ import { TransformInterceptor } from '../src/common/interceptors/transform.inter
 
 describe('PromoBanner (e2e)', () => {
   let app: INestApplication<App>;
+  const createdBannerIds: string[] = [];
 
   const publicUrl = '/api/v1/promo-banners';
   const adminUrl = '/api/v1/admin/promo-banners';
+
+  function trackBanner(id: string) {
+    createdBannerIds.push(id);
+  }
 
   const samplePayload = {
     title: 'Promo Banner E2E',
@@ -36,6 +41,12 @@ describe('PromoBanner (e2e)', () => {
   });
 
   afterEach(async () => {
+    for (const id of createdBannerIds.splice(0)) {
+      await request(app.getHttpServer())
+        .delete(`${adminUrl}/${id}`)
+        .catch(() => undefined);
+    }
+
     await app.close();
   });
 
@@ -48,6 +59,7 @@ describe('PromoBanner (e2e)', () => {
           title: `Promo list ${Date.now()}`,
         })
         .expect(201);
+      trackBanner(createResponse.body.data.id);
 
       const response = await request(app.getHttpServer())
         .get(publicUrl)
@@ -76,6 +88,7 @@ describe('PromoBanner (e2e)', () => {
           title: 'Promo for public get',
         })
         .expect(201);
+      trackBanner(createResponse.body.data.id);
 
       const bannerId = createResponse.body.data.id;
 
@@ -99,6 +112,7 @@ describe('PromoBanner (e2e)', () => {
           isActive: false,
         })
         .expect(201);
+      trackBanner(createResponse.body.data.id);
 
       await request(app.getHttpServer())
         .get(`${publicUrl}/${createResponse.body.data.id}`)
@@ -112,6 +126,7 @@ describe('PromoBanner (e2e)', () => {
         .post(adminUrl)
         .send(samplePayload)
         .expect(201);
+      trackBanner(response.body.data.id);
 
       expect(response.body.data).toMatchObject({
         ...samplePayload,
@@ -131,6 +146,7 @@ describe('PromoBanner (e2e)', () => {
           isActive: false,
         })
         .expect(201);
+      trackBanner(createResponse.body.data.id);
 
       const response = await request(app.getHttpServer())
         .get(adminUrl)
@@ -156,6 +172,7 @@ describe('PromoBanner (e2e)', () => {
           title: 'Promo for admin get',
         })
         .expect(201);
+      trackBanner(createResponse.body.data.id);
 
       const bannerId = createResponse.body.data.id;
 
@@ -186,6 +203,7 @@ describe('PromoBanner (e2e)', () => {
           title: 'Promo to update',
         })
         .expect(201);
+      trackBanner(createResponse.body.data.id);
 
       const bannerId = createResponse.body.data.id;
 
@@ -210,6 +228,7 @@ describe('PromoBanner (e2e)', () => {
           title: 'Promo to toggle',
         })
         .expect(201);
+      trackBanner(createResponse.body.data.id);
 
       const bannerId = createResponse.body.data.id;
 
@@ -240,6 +259,7 @@ describe('PromoBanner (e2e)', () => {
           title: 'Promo to delete',
         })
         .expect(201);
+      trackBanner(createResponse.body.data.id);
 
       const bannerId = createResponse.body.data.id;
 

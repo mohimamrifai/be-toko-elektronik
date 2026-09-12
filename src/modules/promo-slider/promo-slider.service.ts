@@ -13,6 +13,8 @@ const publicPromoSliderFields = {
   href: promoSliders.href,
 };
 
+const MAX_PUBLIC_PROMO_SLIDERS = 5;
+
 const adminPromoSliderFields = {
   id: promoSliders.id,
   title: promoSliders.title,
@@ -35,7 +37,8 @@ export class PromoSliderService {
       .select(publicPromoSliderFields)
       .from(promoSliders)
       .where(eq(promoSliders.isActive, true))
-      .orderBy(asc(promoSliders.sortOrder));
+      .orderBy(asc(promoSliders.sortOrder))
+      .limit(MAX_PUBLIC_PROMO_SLIDERS);
   }
 
   async findOnePublic(id: string) {

@@ -4,13 +4,16 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module.js';
 import { TransformInterceptor } from '../src/common/interceptors/transform.interceptor.js';
+import { cleanupProductFixture } from './helpers/e2e-artifact-cleanup.helper.js';
 import {
   closeProductSeedPool,
   seedProductFixture,
+  type SeededProductData,
 } from './helpers/product-seed.helper.js';
 
 describe('Product (e2e)', () => {
   let app: INestApplication<App>;
+  const seededProducts: SeededProductData[] = [];
 
   const publicUrl = '/api/v1/products';
 
@@ -30,6 +33,10 @@ describe('Product (e2e)', () => {
   });
 
   afterEach(async () => {
+    for (const seeded of seededProducts.splice(0)) {
+      await cleanupProductFixture(seeded);
+    }
+
     await app.close();
   });
 
@@ -40,6 +47,7 @@ describe('Product (e2e)', () => {
   describe(`GET ${publicUrl}`, () => {
     it('should return paginated active products', async () => {
       const seeded = await seedProductFixture(`list-${Date.now()}`);
+      seededProducts.push(seeded);
 
       const response = await request(app.getHttpServer())
         .get(publicUrl)
@@ -70,6 +78,7 @@ describe('Product (e2e)', () => {
     it('should filter products by category and brand slug', async () => {
       const suffix = `filter-${Date.now()}`;
       const seeded = await seedProductFixture(suffix);
+      seededProducts.push(seeded);
 
       const response = await request(app.getHttpServer())
         .get(publicUrl)
@@ -90,6 +99,7 @@ describe('Product (e2e)', () => {
     it('should filter products by search query', async () => {
       const suffix = `search-${Date.now()}`;
       const seeded = await seedProductFixture(suffix);
+      seededProducts.push(seeded);
 
       const response = await request(app.getHttpServer())
         .get(publicUrl)
@@ -106,7 +116,7 @@ describe('Product (e2e)', () => {
 
     it('should sort products by cheapest price', async () => {
       const suffix = `sort-${Date.now()}`;
-      await seedProductFixture(suffix);
+      seededProducts.push(await seedProductFixture(suffix));
 
       const response = await request(app.getHttpServer())
         .get(publicUrl)
@@ -121,6 +131,7 @@ describe('Product (e2e)', () => {
   describe(`GET ${publicUrl}/:slug`, () => {
     it('should return product detail by slug', async () => {
       const seeded = await seedProductFixture(`detail-${Date.now()}`);
+      seededProducts.push(seeded);
 
       const response = await request(app.getHttpServer())
         .get(`${publicUrl}/${seeded.slug}`)

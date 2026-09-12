@@ -37,11 +37,15 @@ describe('PromoSliderService', () => {
   const mockDeleteWhere = vi.fn(() => ({
     returning: mockReturning,
   }));
-  const mockOrderBy = vi.fn(() => Promise.resolve(mockSliders));
-  const mockLimit = vi.fn(() => Promise.resolve([mockSlider]));
-  const mockWhere = vi.fn(() => ({
-    orderBy: mockOrderBy,
+  const mockLimit = vi.fn(() => Promise.resolve(mockSliders));
+  const mockLimitOne = vi.fn(() => Promise.resolve([mockSlider]));
+  const mockOrderByWithLimit = vi.fn(() => ({
     limit: mockLimit,
+  }));
+  const mockOrderBy = vi.fn(() => Promise.resolve(mockSliders));
+  const mockWhere = vi.fn(() => ({
+    orderBy: mockOrderByWithLimit,
+    limit: mockLimitOne,
   }));
   const mockFrom = vi.fn(() => ({
     where: mockWhere,
@@ -78,7 +82,8 @@ describe('PromoSliderService', () => {
     service = module.get<PromoSliderService>(PromoSliderService);
     vi.clearAllMocks();
     mockReturning.mockResolvedValue([mockSlider]);
-    mockLimit.mockResolvedValue([mockSlider]);
+    mockLimit.mockResolvedValue(mockSliders);
+    mockLimitOne.mockResolvedValue([mockSlider]);
   });
 
   it('should be defined', () => {
@@ -136,7 +141,7 @@ describe('PromoSliderService', () => {
     });
 
     it('should throw NotFoundException when promo slider not found', async () => {
-      mockLimit.mockResolvedValueOnce([]);
+      mockLimitOne.mockResolvedValue([]);
 
       await expect(
         service.findOnePublic('00000000-0000-0000-0000-000000000000'),

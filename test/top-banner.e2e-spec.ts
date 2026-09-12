@@ -7,9 +7,14 @@ import { TransformInterceptor } from '../src/common/interceptors/transform.inter
 
 describe('TopBanner (e2e)', () => {
   let app: INestApplication<App>;
+  const createdBannerIds: string[] = [];
 
   const publicUrl = '/api/v1/top-banner';
   const adminUrl = '/api/v1/admin/top-banner';
+
+  function trackBanner(id: string) {
+    createdBannerIds.push(id);
+  }
 
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -27,6 +32,12 @@ describe('TopBanner (e2e)', () => {
   });
 
   afterEach(async () => {
+    for (const id of createdBannerIds.splice(0)) {
+      await request(app.getHttpServer())
+        .delete(`${adminUrl}/${id}`)
+        .catch(() => undefined);
+    }
+
     await app.close();
   });
 
@@ -55,6 +66,7 @@ describe('TopBanner (e2e)', () => {
           href: '/promo/public',
         })
         .expect(201);
+      trackBanner(createResponse.body.data.id);
 
       const bannerId = createResponse.body.data.id;
 
@@ -78,6 +90,7 @@ describe('TopBanner (e2e)', () => {
           isActive: false,
         })
         .expect(201);
+      trackBanner(createResponse.body.data.id);
 
       await request(app.getHttpServer())
         .get(`${publicUrl}/${createResponse.body.data.id}`)
@@ -96,6 +109,7 @@ describe('TopBanner (e2e)', () => {
         .post(adminUrl)
         .send(payload)
         .expect(201);
+      trackBanner(response.body.data.id);
 
       expect(response.body.data).toMatchObject({
         ...payload,
@@ -116,6 +130,7 @@ describe('TopBanner (e2e)', () => {
           isActive: false,
         })
         .expect(201);
+      trackBanner(createResponse.body.data.id);
 
       const response = await request(app.getHttpServer())
         .get(adminUrl)
@@ -141,6 +156,7 @@ describe('TopBanner (e2e)', () => {
           href: '/promo/admin-get',
         })
         .expect(201);
+      trackBanner(createResponse.body.data.id);
 
       const bannerId = createResponse.body.data.id;
 
@@ -172,6 +188,7 @@ describe('TopBanner (e2e)', () => {
           href: '/promo/to-update',
         })
         .expect(201);
+      trackBanner(createResponse.body.data.id);
 
       const bannerId = createResponse.body.data.id;
 
@@ -199,6 +216,7 @@ describe('TopBanner (e2e)', () => {
           href: '/promo/to-delete',
         })
         .expect(201);
+      trackBanner(createResponse.body.data.id);
 
       const bannerId = createResponse.body.data.id;
 

@@ -7,9 +7,14 @@ import { TransformInterceptor } from '../src/common/interceptors/transform.inter
 
 describe('Category (e2e)', () => {
   let app: INestApplication<App>;
+  const createdCategoryIds: string[] = [];
 
   const publicUrl = '/api/v1/categories';
   const adminUrl = '/api/v1/admin/categories';
+
+  function trackCategory(id: string) {
+    createdCategoryIds.push(id);
+  }
 
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -27,6 +32,12 @@ describe('Category (e2e)', () => {
   });
 
   afterEach(async () => {
+    for (const id of createdCategoryIds.splice(0)) {
+      await request(app.getHttpServer())
+        .delete(`${adminUrl}/${id}`)
+        .catch(() => undefined);
+    }
+
     await app.close();
   });
 
@@ -40,6 +51,7 @@ describe('Category (e2e)', () => {
           icon: 'Smartphone',
         })
         .expect(201);
+      trackCategory(createResponse.body.data.id);
 
       const response = await request(app.getHttpServer())
         .get(publicUrl)
@@ -68,6 +80,7 @@ describe('Category (e2e)', () => {
           icon: 'Laptop',
         })
         .expect(201);
+      trackCategory(createResponse.body.data.id);
 
       const categoryId = createResponse.body.data.id;
 
@@ -92,6 +105,7 @@ describe('Category (e2e)', () => {
           isActive: false,
         })
         .expect(201);
+      trackCategory(createResponse.body.data.id);
 
       await request(app.getHttpServer())
         .get(`${publicUrl}/${createResponse.body.data.id}`)
@@ -112,6 +126,7 @@ describe('Category (e2e)', () => {
         .post(adminUrl)
         .send(payload)
         .expect(201);
+      trackCategory(response.body.data.id);
 
       expect(response.body.data).toMatchObject({
         ...payload,
@@ -131,6 +146,7 @@ describe('Category (e2e)', () => {
           isActive: false,
         })
         .expect(201);
+      trackCategory(createResponse.body.data.id);
 
       const response = await request(app.getHttpServer())
         .get(adminUrl)
@@ -156,6 +172,7 @@ describe('Category (e2e)', () => {
           slug: `admin-get-${Date.now()}`,
         })
         .expect(201);
+      trackCategory(createResponse.body.data.id);
 
       const categoryId = createResponse.body.data.id;
 
@@ -186,6 +203,7 @@ describe('Category (e2e)', () => {
           slug: `to-update-${Date.now()}`,
         })
         .expect(201);
+      trackCategory(createResponse.body.data.id);
 
       const categoryId = createResponse.body.data.id;
 
@@ -210,6 +228,7 @@ describe('Category (e2e)', () => {
           slug: `to-toggle-${Date.now()}`,
         })
         .expect(201);
+      trackCategory(createResponse.body.data.id);
 
       const categoryId = createResponse.body.data.id;
 
@@ -240,6 +259,7 @@ describe('Category (e2e)', () => {
           slug: `to-delete-${Date.now()}`,
         })
         .expect(201);
+      trackCategory(createResponse.body.data.id);
 
       const categoryId = createResponse.body.data.id;
 
