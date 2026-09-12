@@ -6,6 +6,12 @@ import { AppModule } from '../src/app.module.js';
 import { TransformInterceptor } from '../src/common/interceptors/transform.interceptor.js';
 import { cleanupProductFixture } from './helpers/e2e-artifact-cleanup.helper.js';
 import {
+  ensureSeedFlashSaleActive,
+  SEED_FLASH_SALE_NAME,
+} from '../src/database/seeds/flash-sale.seed.js';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { Pool } from 'pg';
+import {
   closeProductSeedPool,
   seedProductFixture,
   type SeededProductData,
@@ -36,18 +42,27 @@ describe('FlashSale (e2e)', () => {
     };
   };
 
-  const deactivateAllFlashSales = async () => {
+  const deactivateAllFlashSales = async (options?: { includeSeed?: boolean }) => {
+    const includeSeed = options?.includeSeed ?? false;
     const listResponse = await request(app.getHttpServer())
       .get(adminUrl)
       .expect(200);
 
     for (const flashSale of listResponse.body.data) {
-      if (flashSale.isActive) {
-        await request(app.getHttpServer())
-          .patch(`${adminUrl}/${flashSale.id}`)
-          .send({ isActive: false })
-          .expect(200);
+      const isSeedFlashSale = flashSale.name === SEED_FLASH_SALE_NAME;
+
+      if (!flashSale.isActive) {
+        continue;
       }
+
+      if (!includeSeed && isSeedFlashSale) {
+        continue;
+      }
+
+      await request(app.getHttpServer())
+        .patch(`${adminUrl}/${flashSale.id}`)
+        .send({ isActive: false })
+        .expect(200);
     }
   };
 
@@ -81,6 +96,15 @@ describe('FlashSale (e2e)', () => {
   });
 
   afterAll(async () => {
+    const pool = new Pool({
+      connectionString:
+        process.env.DATABASE_URL ??
+        'postgresql://postgres:postgres@localhost:5433/toko_elektronik',
+    });
+    const db = drizzle(pool, { casing: 'snake_case' });
+
+    await ensureSeedFlashSaleActive(db);
+    await pool.end();
     await closeProductSeedPool();
   });
 
@@ -136,7 +160,7 @@ describe('FlashSale (e2e)', () => {
     });
 
     it('should return 404 when no active flash sale exists', async () => {
-      await deactivateAllFlashSales();
+      await deactivateAllFlashSales({ includeSeed: true });
 
       const now = Date.now();
 

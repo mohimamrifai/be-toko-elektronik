@@ -6,6 +6,7 @@ import { promoBanners } from './schema/promo-banners.schema.js';
 import { promoSliders } from './schema/promo-sliders.schema.js';
 import { topBanners } from './schema/top-banners.schema.js';
 import { seedCatalog } from './seeds/catalog.seed.js';
+import { seedFlashSale } from './seeds/flash-sale.seed.js';
 import { seedUsers } from './seeds/users.seed.js';
 
 const pool = new Pool({
@@ -115,6 +116,7 @@ async function seed() {
   await seedPromoSliders();
   await seedPromoBanners();
   await seedCatalog(db);
+  await seedFlashSale(db);
   await seedUsers(db);
   console.log('Seed completed');
 }

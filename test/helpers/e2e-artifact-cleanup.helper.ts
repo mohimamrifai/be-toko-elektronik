@@ -1,4 +1,4 @@
-import { and, eq, inArray, like, ne, notInArray } from 'drizzle-orm';
+import { and, eq, inArray, like, ne, not, notInArray } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import { brands } from '../../src/database/schema/brands.schema.js';
@@ -12,6 +12,7 @@ import { productSpecifications } from '../../src/database/schema/product-specifi
 import { productVariants } from '../../src/database/schema/product-variants.schema.js';
 import { products } from '../../src/database/schema/products.schema.js';
 import { promoSliders } from '../../src/database/schema/promo-sliders.schema.js';
+import { SEED_FLASH_SALE_NAME } from '../../src/database/seeds/flash-sale.seed.js';
 import type { SeededProductData } from './product-seed.helper.js';
 
 const pool = new Pool({
@@ -75,7 +76,9 @@ export async function cleanupBrandById(brandId: string) {
 }
 
 export async function purgeE2eArtifactsFromDatabase() {
-  await db.delete(flashSales);
+  await db
+    .delete(flashSales)
+    .where(not(eq(flashSales.name, SEED_FLASH_SALE_NAME)));
 
   const testProducts = await db
     .select({ id: products.id })
