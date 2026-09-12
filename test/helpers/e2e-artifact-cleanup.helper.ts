@@ -3,6 +3,10 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import { brands } from '../../src/database/schema/brands.schema.js';
 import { categories } from '../../src/database/schema/categories.schema.js';
+import {
+  flashSaleProducts,
+  flashSales,
+} from '../../src/database/schema/flash-sales.schema.js';
 import { productImages } from '../../src/database/schema/product-images.schema.js';
 import { productSpecifications } from '../../src/database/schema/product-specifications.schema.js';
 import { productVariants } from '../../src/database/schema/product-variants.schema.js';
@@ -50,6 +54,9 @@ const SEED_PROMO_SLIDER_TITLES = [
 
 export async function cleanupProductFixture(data: SeededProductData) {
   await db
+    .delete(flashSaleProducts)
+    .where(eq(flashSaleProducts.productId, data.productId));
+  await db
     .delete(productVariants)
     .where(eq(productVariants.productId, data.productId));
   await db
@@ -68,6 +75,8 @@ export async function cleanupBrandById(brandId: string) {
 }
 
 export async function purgeE2eArtifactsFromDatabase() {
+  await db.delete(flashSales);
+
   const testProducts = await db
     .select({ id: products.id })
     .from(products)

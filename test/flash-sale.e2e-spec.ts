@@ -4,16 +4,28 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module.js';
 import { TransformInterceptor } from '../src/common/interceptors/transform.interceptor.js';
+import { cleanupProductFixture } from './helpers/e2e-artifact-cleanup.helper.js';
 import {
   closeProductSeedPool,
   seedProductFixture,
+  type SeededProductData,
 } from './helpers/product-seed.helper.js';
 
 describe('FlashSale (e2e)', () => {
   let app: INestApplication<App>;
+  const seededProducts: SeededProductData[] = [];
+  const createdFlashSaleIds: string[] = [];
 
   const publicActiveUrl = '/api/v1/flash-sales/active';
   const adminUrl = '/api/v1/admin/flash-sales';
+
+  function trackProduct(fixture: SeededProductData) {
+    seededProducts.push(fixture);
+  }
+
+  function trackFlashSale(id: string) {
+    createdFlashSaleIds.push(id);
+  }
 
   const getActiveWindow = () => {
     const now = Date.now();
@@ -55,6 +67,16 @@ describe('FlashSale (e2e)', () => {
   });
 
   afterEach(async () => {
+    for (const id of createdFlashSaleIds.splice(0)) {
+      await request(app.getHttpServer())
+        .delete(`${adminUrl}/${id}`)
+        .catch(() => undefined);
+    }
+
+    for (const seeded of seededProducts.splice(0)) {
+      await cleanupProductFixture(seeded);
+    }
+
     await app.close();
   });
 
@@ -67,6 +89,7 @@ describe('FlashSale (e2e)', () => {
       await deactivateAllFlashSales();
 
       const fixture = await seedProductFixture(`flash-active-${Date.now()}`);
+      trackProduct(fixture);
       const window = getActiveWindow();
 
       const createResponse = await request(app.getHttpServer())
@@ -85,6 +108,7 @@ describe('FlashSale (e2e)', () => {
           ],
         })
         .expect(201);
+      trackFlashSale(createResponse.body.data.id);
 
       const response = await request(app.getHttpServer())
         .get(publicActiveUrl)
@@ -116,7 +140,7 @@ describe('FlashSale (e2e)', () => {
 
       const now = Date.now();
 
-      await request(app.getHttpServer())
+      const createResponse = await request(app.getHttpServer())
         .post(adminUrl)
         .send({
           name: 'Future flash sale',
@@ -125,6 +149,7 @@ describe('FlashSale (e2e)', () => {
           isActive: true,
         })
         .expect(201);
+      trackFlashSale(createResponse.body.data.id);
 
       await request(app.getHttpServer()).get(publicActiveUrl).expect(404);
     });
@@ -133,6 +158,7 @@ describe('FlashSale (e2e)', () => {
   describe(`POST ${adminUrl}`, () => {
     it('should create a flash sale with products', async () => {
       const fixture = await seedProductFixture(`flash-create-${Date.now()}`);
+      trackProduct(fixture);
       const window = getActiveWindow();
 
       const response = await request(app.getHttpServer())
@@ -150,6 +176,7 @@ describe('FlashSale (e2e)', () => {
           ],
         })
         .expect(201);
+      trackFlashSale(response.body.data.id);
 
       expect(response.body.data).toMatchObject({
         name: 'Flash Sale Create',
@@ -177,6 +204,7 @@ describe('FlashSale (e2e)', () => {
           endsAt: window.endsAt,
         })
         .expect(201);
+      trackFlashSale(createResponse.body.data.id);
 
       const response = await request(app.getHttpServer())
         .get(adminUrl)
@@ -196,6 +224,7 @@ describe('FlashSale (e2e)', () => {
   describe(`GET ${adminUrl}/:id`, () => {
     it('should return flash sale detail with products', async () => {
       const fixture = await seedProductFixture(`flash-get-${Date.now()}`);
+      trackProduct(fixture);
       const window = getActiveWindow();
 
       const createResponse = await request(app.getHttpServer())
@@ -213,6 +242,7 @@ describe('FlashSale (e2e)', () => {
           ],
         })
         .expect(201);
+      trackFlashSale(createResponse.body.data.id);
 
       const flashSaleId = createResponse.body.data.id;
 
@@ -240,6 +270,7 @@ describe('FlashSale (e2e)', () => {
           endsAt: window.endsAt,
         })
         .expect(201);
+      trackFlashSale(createResponse.body.data.id);
 
       const flashSaleId = createResponse.body.data.id;
 
@@ -262,6 +293,7 @@ describe('FlashSale (e2e)', () => {
   describe(`PUT ${adminUrl}/:id/products`, () => {
     it('should replace flash sale products', async () => {
       const fixture = await seedProductFixture(`flash-sync-${Date.now()}`);
+      trackProduct(fixture);
       const window = getActiveWindow();
 
       const createResponse = await request(app.getHttpServer())
@@ -272,6 +304,7 @@ describe('FlashSale (e2e)', () => {
           endsAt: window.endsAt,
         })
         .expect(201);
+      trackFlashSale(createResponse.body.data.id);
 
       const flashSaleId = createResponse.body.data.id;
 
@@ -302,6 +335,7 @@ describe('FlashSale (e2e)', () => {
   describe(`PATCH ${adminUrl}/:id/products/:itemId`, () => {
     it('should update a flash sale product item', async () => {
       const fixture = await seedProductFixture(`flash-item-${Date.now()}`);
+      trackProduct(fixture);
       const window = getActiveWindow();
 
       const createResponse = await request(app.getHttpServer())
@@ -319,6 +353,7 @@ describe('FlashSale (e2e)', () => {
           ],
         })
         .expect(201);
+      trackFlashSale(createResponse.body.data.id);
 
       const flashSaleId = createResponse.body.data.id;
       const itemId = createResponse.body.data.products[0].id;
@@ -340,6 +375,7 @@ describe('FlashSale (e2e)', () => {
   describe(`DELETE ${adminUrl}/:id/products/:itemId`, () => {
     it('should remove a product from flash sale', async () => {
       const fixture = await seedProductFixture(`flash-remove-item-${Date.now()}`);
+      trackProduct(fixture);
       const window = getActiveWindow();
 
       const createResponse = await request(app.getHttpServer())
@@ -357,6 +393,7 @@ describe('FlashSale (e2e)', () => {
           ],
         })
         .expect(201);
+      trackFlashSale(createResponse.body.data.id);
 
       const flashSaleId = createResponse.body.data.id;
       const itemId = createResponse.body.data.products[0].id;
@@ -381,6 +418,7 @@ describe('FlashSale (e2e)', () => {
           endsAt: window.endsAt,
         })
         .expect(201);
+      trackFlashSale(createResponse.body.data.id);
 
       const flashSaleId = createResponse.body.data.id;
 
