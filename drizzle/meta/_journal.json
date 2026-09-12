@@ -50,6 +50,13 @@
       "when": 1789126585109,
       "tag": "0006_gray_zuras",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1789239977416,
+      "tag": "0007_lumpy_azazel",
+      "breakpoints": true
     }
   ]
 }
