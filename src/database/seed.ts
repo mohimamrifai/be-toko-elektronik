@@ -6,6 +6,7 @@ import { promoBanners } from './schema/promo-banners.schema.js';
 import { promoSliders } from './schema/promo-sliders.schema.js';
 import { topBanners } from './schema/top-banners.schema.js';
 import { seedCatalog } from './seeds/catalog.seed.js';
+import { seedUsers } from './seeds/users.seed.js';
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -114,6 +115,7 @@ async function seed() {
   await seedPromoSliders();
   await seedPromoBanners();
   await seedCatalog(db);
+  await seedUsers(db);
   console.log('Seed completed');
 }
 

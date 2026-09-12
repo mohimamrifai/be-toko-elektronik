@@ -17,6 +17,8 @@ export default defineConfig({
       CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY ?? 'test-api-key',
       CLOUDINARY_API_SECRET:
         process.env.CLOUDINARY_API_SECRET ?? 'test-api-secret',
+      JWT_SECRET: process.env.JWT_SECRET ?? 'test-jwt-secret',
+      JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN ?? '7d',
     },
   },
 });

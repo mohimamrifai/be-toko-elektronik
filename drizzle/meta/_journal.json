@@ -43,6 +43,13 @@
       "when": 1789125123867,
       "tag": "0005_spooky_johnny_blaze",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789126585109,
+      "tag": "0006_gray_zuras",
+      "breakpoints": true
     }
   ]
 }
