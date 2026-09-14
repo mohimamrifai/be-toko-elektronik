@@ -13,3 +13,4 @@ export * from './addresses.schema.js';
 export * from './carts.schema.js';
 export * from './orders.schema.js';
 export * from './payments.schema.js';
+export * from './wishlists.schema.js';
