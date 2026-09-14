@@ -10,6 +10,7 @@ import { CartModule } from './modules/cart/cart.module.js';
 import { OrderModule } from './modules/order/order.module.js';
 import { PaymentModule } from './modules/payment/payment.module.js';
 import { WishlistModule } from './modules/wishlist/wishlist.module.js';
+import { ReviewModule } from './modules/review/review.module.js';
 import { CategoryModule } from './modules/category/category.module.js';
 import { FlashSaleModule } from './modules/flash-sale/flash-sale.module.js';
 import { ProductModule } from './modules/product/product.module.js';
@@ -31,6 +32,7 @@ import { StorageModule } from './storage/storage.module.js';
     OrderModule,
     PaymentModule,
     WishlistModule,
+    ReviewModule,
     StorageModule,
     TopBannerModule,
     PromoSliderModule,

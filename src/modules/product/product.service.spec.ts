@@ -1,6 +1,7 @@
 import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DRIZZLE } from '../../database/database.constants.js';
+import { ReviewService } from '../review/review.service.js';
 import { ProductService } from './product.service.js';
 
 describe('ProductService', () => {
@@ -71,6 +72,10 @@ describe('ProductService', () => {
     })),
   }));
 
+  const mockReviewService = {
+    getStatsByProductIds: vi.fn(() => Promise.resolve(new Map())),
+  };
+
   const mockDb = {
     select: vi.fn((fields) => {
       if (fields && 'total' in fields) {
@@ -124,6 +129,10 @@ describe('ProductService', () => {
         {
           provide: DRIZZLE,
           useValue: mockDb,
+        },
+        {
+          provide: ReviewService,
+          useValue: mockReviewService,
         },
       ],
     }).compile();
@@ -179,6 +188,7 @@ describe('ProductService', () => {
         price: 3499000,
         originalPrice: 4299000,
         rating: 0,
+        reviewCount: 0,
         soldCount: 0,
         image: 'https://placehold.co/600x600/png?text=Primary',
       });
@@ -202,6 +212,7 @@ describe('ProductService', () => {
         price: 3499000,
         originalPrice: 4299000,
         rating: 0,
+        reviewCount: 0,
         soldCount: 0,
         category: {
           id: mockProductRow.categoryId,

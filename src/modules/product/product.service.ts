@@ -19,6 +19,7 @@ import { productImages } from '../../database/schema/product-images.schema.js';
 import { productSpecifications } from '../../database/schema/product-specifications.schema.js';
 import { productVariants } from '../../database/schema/product-variants.schema.js';
 import { products } from '../../database/schema/products.schema.js';
+import { ReviewService } from '../review/review.service.js';
 import type { ProductSort } from './dto/query-products.dto.js';
 
 const DEFAULT_PAGE = 1;
@@ -64,6 +65,7 @@ function mapListItem(
     brandSlug: string;
   },
   image: string | null,
+  reviewStats?: { avgRating: number; reviewCount: number },
 ) {
   const listPrice = toNumber(row.price) ?? 0;
   const salePrice = toNumber(row.discountPrice);
@@ -75,7 +77,8 @@ function mapListItem(
     image,
     price: salePrice ?? listPrice,
     originalPrice: salePrice !== null ? listPrice : null,
-    rating: 0,
+    rating: reviewStats?.avgRating ?? 0,
+    reviewCount: reviewStats?.reviewCount ?? 0,
     soldCount: 0,
     category: {
       id: row.categoryId,
@@ -92,7 +95,10 @@ function mapListItem(
 
 @Injectable()
 export class ProductService {
-  constructor(@Inject(DRIZZLE) private readonly db: Database) {}
+  constructor(
+    @Inject(DRIZZLE) private readonly db: Database,
+    private readonly reviewService: ReviewService,
+  ) {}
 
   private buildListConditions(options: FindAllProductsOptions): SQL[] {
     const conditions: SQL[] = [eq(products.isActive, true)];
@@ -195,11 +201,19 @@ export class ProductService {
       .limit(limit)
       .offset(offset);
 
-    const imageMap = await this.getPrimaryImagesMap(rows.map((row) => row.id));
+    const productIds = rows.map((row) => row.id);
+    const [imageMap, reviewStatsMap] = await Promise.all([
+      this.getPrimaryImagesMap(productIds),
+      this.reviewService.getStatsByProductIds(productIds),
+    ]);
 
     return {
       items: rows.map((row) =>
-        mapListItem(row, imageMap.get(row.id) ?? null),
+        mapListItem(
+          row,
+          imageMap.get(row.id) ?? null,
+          reviewStatsMap.get(row.id),
+        ),
       ),
       meta: {
         page,
@@ -276,6 +290,13 @@ export class ProductService {
 
     const listPrice = toNumber(product.price) ?? 0;
     const salePrice = toNumber(product.discountPrice);
+    const reviewStatsMap = await this.reviewService.getStatsByProductIds([
+      product.id,
+    ]);
+    const reviewStats = reviewStatsMap.get(product.id) ?? {
+      avgRating: 0,
+      reviewCount: 0,
+    };
 
     return {
       id: product.id,
@@ -287,7 +308,8 @@ export class ProductService {
       stock: product.stock,
       sku: product.sku,
       warrantyMonths: product.warrantyMonths,
-      rating: 0,
+      rating: reviewStats.avgRating,
+      reviewCount: reviewStats.reviewCount,
       soldCount: 0,
       category: {
         id: product.categoryId,

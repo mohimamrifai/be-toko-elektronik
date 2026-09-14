@@ -12,6 +12,7 @@ import { productSpecifications } from '../../src/database/schema/product-specifi
 import { productVariants } from '../../src/database/schema/product-variants.schema.js';
 import { orderItems } from '../../src/database/schema/orders.schema.js';
 import { products } from '../../src/database/schema/products.schema.js';
+import { reviews } from '../../src/database/schema/reviews.schema.js';
 import { wishlists } from '../../src/database/schema/wishlists.schema.js';
 import { promoSliders } from '../../src/database/schema/promo-sliders.schema.js';
 import { SEED_FLASH_SALE_NAME } from '../../src/database/seeds/flash-sale.seed.js';
@@ -56,6 +57,9 @@ const SEED_PROMO_SLIDER_TITLES = [
 ];
 
 export async function cleanupProductFixture(data: SeededProductData) {
+  await db
+    .delete(reviews)
+    .where(eq(reviews.productId, data.productId));
   await db
     .delete(wishlists)
     .where(eq(wishlists.productId, data.productId));
