@@ -8,6 +8,7 @@ import { AuthModule } from './modules/auth/auth.module.js';
 import { BrandModule } from './modules/brand/brand.module.js';
 import { CartModule } from './modules/cart/cart.module.js';
 import { OrderModule } from './modules/order/order.module.js';
+import { PaymentModule } from './modules/payment/payment.module.js';
 import { CategoryModule } from './modules/category/category.module.js';
 import { FlashSaleModule } from './modules/flash-sale/flash-sale.module.js';
 import { ProductModule } from './modules/product/product.module.js';
@@ -27,6 +28,7 @@ import { StorageModule } from './storage/storage.module.js';
     AddressModule,
     CartModule,
     OrderModule,
+    PaymentModule,
     StorageModule,
     TopBannerModule,
     PromoSliderModule,

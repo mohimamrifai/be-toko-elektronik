@@ -7,6 +7,7 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import { AppModule } from '../src/app.module.js';
 import { TransformInterceptor } from '../src/common/interceptors/transform.interceptor.js';
+import { payments } from '../src/database/schema/payments.schema.js';
 import {
   orderItems,
   orders,
@@ -76,6 +77,7 @@ describe('Order (e2e)', () => {
   }
 
   async function cleanupOrder(orderId: string) {
+    await db.delete(payments).where(eq(payments.orderId, orderId));
     await db.delete(orderStatusHistory).where(eq(orderStatusHistory.orderId, orderId));
     await db.delete(orderItems).where(eq(orderItems.orderId, orderId));
     await db.delete(orders).where(eq(orders.id, orderId));

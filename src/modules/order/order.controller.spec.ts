@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
 import { OrderController } from './order.controller.js';
+import { PaymentService } from '../payment/payment.service.js';
 import { OrderService } from './order.service.js';
 
 describe('OrderController', () => {
@@ -38,6 +39,10 @@ describe('OrderController', () => {
     findOne: vi.fn(),
   };
 
+  const mockPaymentService = {
+    createSnapPayment: vi.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [OrderController],
@@ -45,6 +50,10 @@ describe('OrderController', () => {
         {
           provide: OrderService,
           useValue: mockOrderService,
+        },
+        {
+          provide: PaymentService,
+          useValue: mockPaymentService,
         },
       ],
     })
@@ -81,6 +90,21 @@ describe('OrderController', () => {
 
     expect(mockOrderService.findAll).toHaveBeenCalledWith(mockUser.id);
     expect(result).toEqual([mockOrder]);
+  });
+
+  it('should create snap payment for current user', async () => {
+    mockPaymentService.createSnapPayment.mockResolvedValue({
+      snapToken: 'snap-token',
+      clientKey: 'client-key',
+    });
+
+    const result = await controller.pay(mockUser, mockOrder.id);
+
+    expect(mockPaymentService.createSnapPayment).toHaveBeenCalledWith(
+      mockUser,
+      mockOrder.id,
+    );
+    expect(result.snapToken).toBe('snap-token');
   });
 
   it('should return order detail for current user', async () => {
