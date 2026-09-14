@@ -11,3 +11,4 @@ export * from './flash-sales.schema.js';
 export * from './users.schema.js';
 export * from './addresses.schema.js';
 export * from './carts.schema.js';
+export * from './orders.schema.js';

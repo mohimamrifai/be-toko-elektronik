@@ -10,6 +10,7 @@ import {
 import { productImages } from '../../src/database/schema/product-images.schema.js';
 import { productSpecifications } from '../../src/database/schema/product-specifications.schema.js';
 import { productVariants } from '../../src/database/schema/product-variants.schema.js';
+import { orderItems } from '../../src/database/schema/orders.schema.js';
 import { products } from '../../src/database/schema/products.schema.js';
 import { promoSliders } from '../../src/database/schema/promo-sliders.schema.js';
 import { SEED_FLASH_SALE_NAME } from '../../src/database/seeds/flash-sale.seed.js';
@@ -54,6 +55,9 @@ const SEED_PROMO_SLIDER_TITLES = [
 ];
 
 export async function cleanupProductFixture(data: SeededProductData) {
+  await db
+    .delete(orderItems)
+    .where(eq(orderItems.productId, data.productId));
   await db
     .delete(flashSaleProducts)
     .where(eq(flashSaleProducts.productId, data.productId));
