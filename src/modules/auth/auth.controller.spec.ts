@@ -12,6 +12,7 @@ describe('AuthController', () => {
   const mockAuthService = {
     register: vi.fn(),
     login: vi.fn(),
+    updateProfile: vi.fn(),
   };
 
   const mockAuthResponse = {
@@ -86,6 +87,28 @@ describe('AuthController', () => {
       const result = controller.getProfile(mockAuthResponse.user);
 
       expect(result).toEqual(mockAuthResponse.user);
+    });
+  });
+
+  describe('updateProfile', () => {
+    it('should call service.updateProfile with user id and dto', async () => {
+      const dto = {
+        name: 'Updated Name',
+        phone: '+6281234567890',
+      };
+
+      mockAuthService.updateProfile.mockResolvedValue({
+        ...mockAuthResponse.user,
+        ...dto,
+      });
+
+      const result = await controller.updateProfile(mockAuthResponse.user, dto);
+
+      expect(mockAuthService.updateProfile).toHaveBeenCalledWith(
+        mockAuthResponse.user.id,
+        dto,
+      );
+      expect(result.name).toBe('Updated Name');
     });
   });
 });

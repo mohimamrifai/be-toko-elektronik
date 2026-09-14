@@ -13,6 +13,7 @@ import { users } from '../../database/schema/users.schema.js';
 import type { AuthResponse, JwtPayload, PublicUser } from './auth.types.js';
 import { LoginDto } from './dto/login.dto.js';
 import { RegisterDto } from './dto/register.dto.js';
+import { UpdateProfileDto } from './dto/update-profile.dto.js';
 
 const publicUserFields = {
   id: users.id,
@@ -109,6 +110,37 @@ export class AuthService {
       .from(users)
       .where(eq(users.id, userId))
       .limit(1);
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    return user;
+  }
+
+  async updateProfile(
+    userId: string,
+    updateProfileDto: UpdateProfileDto,
+  ): Promise<PublicUser> {
+    const updates: { name?: string; phone?: string | null } = {};
+
+    if (updateProfileDto.name !== undefined) {
+      updates.name = updateProfileDto.name.trim();
+    }
+
+    if (updateProfileDto.phone !== undefined) {
+      updates.phone = updateProfileDto.phone.trim() || null;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return this.getProfile(userId);
+    }
+
+    const [user] = await this.db
+      .update(users)
+      .set(updates)
+      .where(eq(users.id, userId))
+      .returning(publicUserFields);
 
     if (!user) {
       throw new UnauthorizedException('User not found');

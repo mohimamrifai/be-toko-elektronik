@@ -43,10 +43,21 @@ describe('AuthService', () => {
     from: mockFrom,
   }));
 
+  const mockUpdateReturning = vi.fn();
+  const mockUpdateWhere = vi.fn(() => ({
+    returning: mockUpdateReturning,
+  }));
+  const mockUpdateSet = vi.fn(() => ({
+    where: mockUpdateWhere,
+  }));
+
   const mockDb = {
     select: mockSelect,
     insert: vi.fn(() => ({
       values: mockValues,
+    })),
+    update: vi.fn(() => ({
+      set: mockUpdateSet,
     })),
   };
 
@@ -127,6 +138,36 @@ describe('AuthService', () => {
           password: 'Customer123!',
         }),
       ).rejects.toThrow(UnauthorizedException);
+    });
+  });
+
+  describe('updateProfile', () => {
+    it('should update user profile fields', async () => {
+      mockUpdateReturning.mockResolvedValueOnce([
+        {
+          ...mockPublicUser,
+          name: 'Updated Name',
+          phone: '+6281234567890',
+        },
+      ]);
+
+      const result = await service.updateProfile(mockPublicUser.id, {
+        name: 'Updated Name',
+        phone: '+6281234567890',
+      });
+
+      expect(mockDb.update).toHaveBeenCalled();
+      expect(result.name).toBe('Updated Name');
+      expect(result.phone).toBe('+6281234567890');
+    });
+
+    it('should return current profile when no fields provided', async () => {
+      mockLimit.mockResolvedValueOnce([mockPublicUser]);
+
+      const result = await service.updateProfile(mockPublicUser.id, {});
+
+      expect(mockDb.update).not.toHaveBeenCalled();
+      expect(result).toEqual(mockPublicUser);
     });
   });
 });

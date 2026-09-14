@@ -142,4 +142,52 @@ describe('Auth (e2e)', () => {
       await request(app.getHttpServer()).get(`${authUrl}/me`).expect(401);
     });
   });
+
+  describe(`PATCH ${authUrl}/me`, () => {
+    it('should update current user profile with bearer token', async () => {
+      const email = `patch-me-${Date.now()}@example.com`;
+
+      const registerResponse = await request(app.getHttpServer())
+        .post(`${authUrl}/register`)
+        .send({
+          name: 'Profile User',
+          email,
+          password: 'Password123!',
+        })
+        .expect(201);
+
+      const token = registerResponse.body.data.accessToken;
+
+      const response = await request(app.getHttpServer())
+        .patch(`${authUrl}/me`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          name: 'Updated Profile User',
+          phone: '+6281234567890',
+        })
+        .expect(200);
+
+      expect(response.body.data).toMatchObject({
+        name: 'Updated Profile User',
+        email,
+        phone: '+6281234567890',
+        role: 'customer',
+      });
+
+      const meResponse = await request(app.getHttpServer())
+        .get(`${authUrl}/me`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      expect(meResponse.body.data.name).toBe('Updated Profile User');
+      expect(meResponse.body.data.phone).toBe('+6281234567890');
+    });
+
+    it('should return 401 without bearer token', async () => {
+      await request(app.getHttpServer())
+        .patch(`${authUrl}/me`)
+        .send({ name: 'Unauthorized Update' })
+        .expect(401);
+    });
+  });
 });
