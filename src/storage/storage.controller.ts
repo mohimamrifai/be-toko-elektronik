@@ -4,6 +4,7 @@ import {
   MaxFileSizeValidator,
   ParseFilePipe,
   Post,
+  Query,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
@@ -28,8 +29,12 @@ export class StorageController {
       }),
     )
     file: Express.Multer.File,
+    @Query('folder') folder?: string,
   ) {
-    const url = await this.storageService.uploadImage(file, 'promo-sliders');
+    const url = await this.storageService.uploadImage(
+      file,
+      folder?.trim() || 'promo-sliders',
+    );
 
     return { url };
   }

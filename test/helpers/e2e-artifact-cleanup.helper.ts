@@ -12,6 +12,7 @@ import { productSpecifications } from '../../src/database/schema/product-specifi
 import { productVariants } from '../../src/database/schema/product-variants.schema.js';
 import { orderItems } from '../../src/database/schema/orders.schema.js';
 import { products } from '../../src/database/schema/products.schema.js';
+import { claims } from '../../src/database/schema/claims.schema.js';
 import { reviews } from '../../src/database/schema/reviews.schema.js';
 import { wishlists } from '../../src/database/schema/wishlists.schema.js';
 import { promoSliders } from '../../src/database/schema/promo-sliders.schema.js';
@@ -57,6 +58,22 @@ const SEED_PROMO_SLIDER_TITLES = [
 ];
 
 export async function cleanupProductFixture(data: SeededProductData) {
+  const orderItemRows = await db
+    .select({ id: orderItems.id })
+    .from(orderItems)
+    .where(eq(orderItems.productId, data.productId));
+
+  const orderItemIds = orderItemRows.map((row) => row.id);
+
+  if (orderItemIds.length > 0) {
+    await db
+      .delete(claims)
+      .where(inArray(claims.orderItemId, orderItemIds));
+    await db
+      .delete(reviews)
+      .where(inArray(reviews.orderItemId, orderItemIds));
+  }
+
   await db
     .delete(reviews)
     .where(eq(reviews.productId, data.productId));
