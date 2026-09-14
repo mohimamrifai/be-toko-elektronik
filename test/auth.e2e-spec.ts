@@ -158,19 +158,21 @@ describe('Auth (e2e)', () => {
 
       const token = registerResponse.body.data.accessToken;
 
+      const phone = `+62812${Date.now()}`;
+
       const response = await request(app.getHttpServer())
         .patch(`${authUrl}/me`)
         .set('Authorization', `Bearer ${token}`)
         .send({
           name: 'Updated Profile User',
-          phone: '+6281234567890',
+          phone,
         })
         .expect(200);
 
       expect(response.body.data).toMatchObject({
         name: 'Updated Profile User',
         email,
-        phone: '+6281234567890',
+        phone,
         role: 'customer',
       });
 
@@ -180,7 +182,7 @@ describe('Auth (e2e)', () => {
         .expect(200);
 
       expect(meResponse.body.data.name).toBe('Updated Profile User');
-      expect(meResponse.body.data.phone).toBe('+6281234567890');
+      expect(meResponse.body.data.phone).toBe(phone);
     });
 
     it('should return 401 without bearer token', async () => {

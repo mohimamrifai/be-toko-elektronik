@@ -57,6 +57,13 @@
       "when": 1789239977416,
       "tag": "0007_lumpy_azazel",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1789376419967,
+      "tag": "0008_typical_toxin",
+      "breakpoints": true
     }
   ]
 }
