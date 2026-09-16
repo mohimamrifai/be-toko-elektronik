@@ -2,13 +2,24 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, VersioningType } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
+import { desc, eq } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { Pool } from 'pg';
 import { AppModule } from '../src/app.module.js';
 import { TransformInterceptor } from '../src/common/interceptors/transform.interceptor.js';
+import { passwordResetTokens } from '../src/database/schema/password-reset-tokens.schema.js';
 
 describe('Auth (e2e)', () => {
   let app: INestApplication<App>;
 
   const authUrl = '/api/v1/auth';
+
+  const pool = new Pool({
+    connectionString:
+      process.env.DATABASE_URL ??
+      'postgresql://postgres:postgres@localhost:5433/toko_elektronik',
+  });
+  const db = drizzle(pool, { casing: 'snake_case' });
 
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -27,6 +38,10 @@ describe('Auth (e2e)', () => {
 
   afterEach(async () => {
     await app.close();
+  });
+
+  afterAll(async () => {
+    await pool.end();
   });
 
   describe(`POST ${authUrl}/register`, () => {
@@ -140,6 +155,78 @@ describe('Auth (e2e)', () => {
 
     it('should return 401 without bearer token', async () => {
       await request(app.getHttpServer()).get(`${authUrl}/me`).expect(401);
+    });
+  });
+
+  describe(`POST ${authUrl}/forgot-password`, () => {
+    it('should create reset token and allow password reset', async () => {
+      const email = `reset-${Date.now()}@example.com`;
+      const oldPassword = 'Password123!';
+      const newPassword = 'NewPassword456!';
+
+      const registerResponse = await request(app.getHttpServer())
+        .post(`${authUrl}/register`)
+        .send({
+          name: 'Reset User',
+          email,
+          password: oldPassword,
+        })
+        .expect(201);
+
+      const userId = registerResponse.body.data.user.id as string;
+
+      const forgotResponse = await request(app.getHttpServer())
+        .post(`${authUrl}/forgot-password`)
+        .send({ email })
+        .expect(201);
+
+      expect(forgotResponse.body.data.message).toContain('Jika email terdaftar');
+
+      const [resetToken] = await db
+        .select({ token: passwordResetTokens.token })
+        .from(passwordResetTokens)
+        .where(eq(passwordResetTokens.userId, userId))
+        .orderBy(desc(passwordResetTokens.createdAt))
+        .limit(1);
+
+      expect(resetToken?.token).toBeTruthy();
+
+      const resetResponse = await request(app.getHttpServer())
+        .post(`${authUrl}/reset-password`)
+        .send({
+          token: resetToken?.token,
+          password: newPassword,
+        })
+        .expect(201);
+
+      expect(resetResponse.body.data.message).toContain('Password berhasil diubah');
+
+      await request(app.getHttpServer())
+        .post(`${authUrl}/login`)
+        .send({
+          email,
+          password: oldPassword,
+        })
+        .expect(401);
+
+      const loginResponse = await request(app.getHttpServer())
+        .post(`${authUrl}/login`)
+        .send({
+          email,
+          password: newPassword,
+        })
+        .expect(201);
+
+      expect(loginResponse.body.data.user.email).toBe(email);
+    });
+
+    it('should return generic message for unknown email', async () => {
+      const response = await request(app.getHttpServer())
+        .post(`${authUrl}/forgot-password`)
+        .send({ email: `unknown-${Date.now()}@example.com` })
+        .expect(201);
+
+      expect(response.body.data.message).toContain('Jika email terdaftar');
     });
   });
 

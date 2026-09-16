@@ -12,6 +12,8 @@ describe('AuthController', () => {
   const mockAuthService = {
     register: vi.fn(),
     login: vi.fn(),
+    forgotPassword: vi.fn(),
+    resetPassword: vi.fn(),
     updateProfile: vi.fn(),
   };
 

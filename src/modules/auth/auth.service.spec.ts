@@ -1,10 +1,12 @@
 import {
+  BadRequestException,
   ConflictException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DRIZZLE } from '../../database/database.constants.js';
+import { MailService } from '../mail/mail.service.js';
 import { AuthService } from './auth.service.js';
 
 vi.mock('bcryptjs', () => ({
@@ -51,6 +53,8 @@ describe('AuthService', () => {
     where: mockUpdateWhere,
   }));
 
+  const mockDeleteWhere = vi.fn(() => Promise.resolve());
+
   const mockDb = {
     select: mockSelect,
     insert: vi.fn(() => ({
@@ -59,10 +63,17 @@ describe('AuthService', () => {
     update: vi.fn(() => ({
       set: mockUpdateSet,
     })),
+    delete: vi.fn(() => ({
+      where: mockDeleteWhere,
+    })),
   };
 
   const mockJwtService = {
     sign: vi.fn(() => 'mock-token'),
+  };
+
+  const mockMailService = {
+    sendPasswordResetEmail: vi.fn(() => Promise.resolve()),
   };
 
   beforeEach(async () => {
@@ -76,6 +87,10 @@ describe('AuthService', () => {
         {
           provide: JwtService,
           useValue: mockJwtService,
+        },
+        {
+          provide: MailService,
+          useValue: mockMailService,
         },
       ],
     }).compile();
@@ -138,6 +153,48 @@ describe('AuthService', () => {
           password: 'Customer123!',
         }),
       ).rejects.toThrow(UnauthorizedException);
+    });
+  });
+
+  describe('forgotPassword', () => {
+    it('should return generic message when email is not registered', async () => {
+      const result = await service.forgotPassword({
+        email: 'missing@example.com',
+      });
+
+      expect(result.message).toContain('Jika email terdaftar');
+      expect(mockMailService.sendPasswordResetEmail).not.toHaveBeenCalled();
+    });
+
+    it('should create reset token and send email for registered user', async () => {
+      mockLimit.mockResolvedValueOnce([
+        { id: mockPublicUser.id, email: mockPublicUser.email },
+      ]);
+
+      const result = await service.forgotPassword({
+        email: mockPublicUser.email,
+      });
+
+      expect(result.message).toContain('Jika email terdaftar');
+      expect(mockDb.delete).toHaveBeenCalled();
+      expect(mockDb.insert).toHaveBeenCalled();
+      expect(mockMailService.sendPasswordResetEmail).toHaveBeenCalledWith(
+        mockPublicUser.email,
+        expect.any(String),
+      );
+    });
+  });
+
+  describe('resetPassword', () => {
+    it('should throw BadRequestException for invalid token', async () => {
+      mockLimit.mockResolvedValueOnce([]);
+
+      await expect(
+        service.resetPassword({
+          token: 'invalid-token',
+          password: 'NewPassword123!',
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
     });
   });
 
