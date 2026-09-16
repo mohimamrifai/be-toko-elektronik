@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { and, asc, desc, eq, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, ilike, sql } from 'drizzle-orm';
 import { DRIZZLE } from '../../database/database.constants.js';
 import type { Database } from '../../database/database.types.js';
 import { addresses } from '../../database/schema/addresses.schema.js';
@@ -17,8 +17,17 @@ import {
 import { productImages } from '../../database/schema/product-images.schema.js';
 import { productVariants } from '../../database/schema/product-variants.schema.js';
 import { products } from '../../database/schema/products.schema.js';
+import { users } from '../../database/schema/users.schema.js';
 import { CheckoutDto } from './dto/checkout.dto.js';
-import { SHIPPING_OPTIONS } from './order.constants.js';
+import { QueryAdminOrdersDto } from './dto/query-admin-orders.dto.js';
+import { UpdateOrderShippingDto } from './dto/update-order-shipping.dto.js';
+import { UpdateOrderStatusDto } from './dto/update-order-status.dto.js';
+import {
+  ADMIN_STATUS_DEFAULT_NOTES,
+  ADMIN_STATUS_TRANSITIONS,
+  ADMIN_UPDATABLE_ORDER_STATUSES,
+  SHIPPING_OPTIONS,
+} from './order.constants.js';
 
 function toNumber(value: string | null | undefined): number {
   if (value === null || value === undefined) {
@@ -450,5 +459,215 @@ export class OrderService {
 
   async findOne(userId: string, orderId: string) {
     return this.buildOrderDetail(userId, orderId);
+  }
+
+  private async buildAdminOrderDetail(orderId: string) {
+    const [order] = await this.db
+      .select({
+        id: orders.id,
+        orderNumber: orders.orderNumber,
+        status: orders.status,
+        subtotal: orders.subtotal,
+        shippingCost: orders.shippingCost,
+        discountAmount: orders.discountAmount,
+        total: orders.total,
+        courier: orders.courier,
+        trackingNumber: orders.trackingNumber,
+        createdAt: orders.createdAt,
+        shippingAddressId: orders.shippingAddressId,
+        customerId: users.id,
+        customerName: users.name,
+        customerEmail: users.email,
+        customerPhone: users.phone,
+      })
+      .from(orders)
+      .leftJoin(users, eq(orders.userId, users.id))
+      .where(eq(orders.id, orderId))
+      .limit(1);
+
+    if (!order) {
+      throw new NotFoundException(`Order #${orderId} not found`);
+    }
+
+    const [shippingAddress] = await this.db
+      .select({
+        id: addresses.id,
+        label: addresses.label,
+        recipientName: addresses.recipientName,
+        phone: addresses.phone,
+        fullAddress: addresses.fullAddress,
+        city: addresses.city,
+        province: addresses.province,
+        postalCode: addresses.postalCode,
+      })
+      .from(addresses)
+      .where(eq(addresses.id, order.shippingAddressId))
+      .limit(1);
+
+    const items = await this.fetchOrderItems(orderId);
+    const statusHistory = await this.fetchStatusHistory(orderId);
+
+    return {
+      ...this.mapOrderSummary(order, items),
+      shippingAddress,
+      statusHistory,
+      customer: {
+        id: order.customerId,
+        name: order.customerName,
+        email: order.customerEmail,
+        phone: order.customerPhone,
+      },
+    };
+  }
+
+  async findAllAdmin(query: QueryAdminOrdersDto) {
+    const filters = [];
+
+    if (query.status) {
+      filters.push(eq(orders.status, query.status));
+    }
+
+    if (query.search?.trim()) {
+      filters.push(ilike(orders.orderNumber, `%${query.search.trim()}%`));
+    }
+
+    const rows = await this.db
+      .select({
+        id: orders.id,
+        orderNumber: orders.orderNumber,
+        status: orders.status,
+        total: orders.total,
+        courier: orders.courier,
+        trackingNumber: orders.trackingNumber,
+        createdAt: orders.createdAt,
+        customerId: users.id,
+        customerName: users.name,
+        customerEmail: users.email,
+        customerPhone: users.phone,
+      })
+      .from(orders)
+      .leftJoin(users, eq(orders.userId, users.id))
+      .where(filters.length ? and(...filters) : undefined)
+      .orderBy(desc(orders.createdAt));
+
+    return Promise.all(
+      rows.map(async (order) => {
+        const items = await this.fetchOrderItems(order.id);
+
+        return {
+          id: order.id,
+          orderNumber: order.orderNumber,
+          status: order.status,
+          total: toNumber(order.total),
+          courier: order.courier,
+          trackingNumber: order.trackingNumber,
+          createdAt: order.createdAt,
+          itemCount: items.reduce((total, item) => total + item.quantity, 0),
+          customer: {
+            id: order.customerId,
+            name: order.customerName,
+            email: order.customerEmail,
+            phone: order.customerPhone,
+          },
+        };
+      }),
+    );
+  }
+
+  async findOneAdmin(orderId: string) {
+    return this.buildAdminOrderDetail(orderId);
+  }
+
+  async updateStatusAdmin(
+    orderId: string,
+    updateOrderStatusDto: UpdateOrderStatusDto,
+  ) {
+    if (
+      !ADMIN_UPDATABLE_ORDER_STATUSES.includes(updateOrderStatusDto.status)
+    ) {
+      throw new BadRequestException('Status tidak valid');
+    }
+
+    await this.db.transaction(async (tx) => {
+      const [order] = await tx
+        .select({
+          id: orders.id,
+          status: orders.status,
+        })
+        .from(orders)
+        .where(eq(orders.id, orderId))
+        .limit(1);
+
+      if (!order) {
+        throw new NotFoundException(`Order #${orderId} not found`);
+      }
+
+      if (order.status === updateOrderStatusDto.status) {
+        throw new BadRequestException('Status pesanan sudah sama');
+      }
+
+      const allowedNextStatuses =
+        ADMIN_STATUS_TRANSITIONS[order.status] ?? [];
+
+      if (!allowedNextStatuses.includes(updateOrderStatusDto.status)) {
+        throw new BadRequestException(
+          `Status tidak dapat diubah dari ${order.status} ke ${updateOrderStatusDto.status}`,
+        );
+      }
+
+      await tx
+        .update(orders)
+        .set({ status: updateOrderStatusDto.status })
+        .where(eq(orders.id, orderId));
+
+      await tx.insert(orderStatusHistory).values({
+        orderId,
+        status: updateOrderStatusDto.status,
+        note:
+          updateOrderStatusDto.note?.trim() ||
+          ADMIN_STATUS_DEFAULT_NOTES[updateOrderStatusDto.status],
+      });
+    });
+
+    return this.buildAdminOrderDetail(orderId);
+  }
+
+  async updateShippingAdmin(
+    orderId: string,
+    updateOrderShippingDto: UpdateOrderShippingDto,
+  ) {
+    if (
+      !SHIPPING_OPTIONS[
+        updateOrderShippingDto.courier as keyof typeof SHIPPING_OPTIONS
+      ]
+    ) {
+      throw new BadRequestException('Kurir pengiriman tidak valid');
+    }
+
+    const trackingNumber = updateOrderShippingDto.trackingNumber.trim();
+
+    if (!trackingNumber) {
+      throw new BadRequestException('Nomor resi wajib diisi');
+    }
+
+    const [order] = await this.db
+      .select({ id: orders.id })
+      .from(orders)
+      .where(eq(orders.id, orderId))
+      .limit(1);
+
+    if (!order) {
+      throw new NotFoundException(`Order #${orderId} not found`);
+    }
+
+    await this.db
+      .update(orders)
+      .set({
+        courier: updateOrderShippingDto.courier,
+        trackingNumber,
+      })
+      .where(eq(orders.id, orderId));
+
+    return this.buildAdminOrderDetail(orderId);
   }
 }

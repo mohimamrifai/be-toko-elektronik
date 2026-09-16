@@ -8,7 +8,11 @@ import {
 import { and, eq } from 'drizzle-orm';
 import { DRIZZLE } from '../../database/database.constants.js';
 import type { Database } from '../../database/database.types.js';
-import { orderItems, orders } from '../../database/schema/orders.schema.js';
+import {
+  orderItems,
+  orders,
+  orderStatusHistory,
+} from '../../database/schema/orders.schema.js';
 import { payments } from '../../database/schema/payments.schema.js';
 import type { PublicUser } from '../auth/auth.types.js';
 import {
@@ -194,10 +198,24 @@ export class PaymentService {
       .where(eq(payments.id, payment.id));
 
     if (nextPaymentStatus === 'success') {
-      await this.db
-        .update(orders)
-        .set({ status: 'paid' })
-        .where(eq(orders.id, payment.orderId));
+      const [order] = await this.db
+        .select({ status: orders.status })
+        .from(orders)
+        .where(eq(orders.id, payment.orderId))
+        .limit(1);
+
+      if (order && order.status !== 'paid') {
+        await this.db
+          .update(orders)
+          .set({ status: 'paid' })
+          .where(eq(orders.id, payment.orderId));
+
+        await this.db.insert(orderStatusHistory).values({
+          orderId: payment.orderId,
+          status: 'paid',
+          note: 'Pembayaran diterima',
+        });
+      }
     }
 
     return { message: 'Notification processed' };
