@@ -4,10 +4,12 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module.js';
 import { TransformInterceptor } from '../src/common/interceptors/transform.interceptor.js';
+import { loginAsAdmin } from './helpers/admin-auth.helper.js';
 import { StorageService } from '../src/storage/storage.service.js';
 
 describe('PromoSlider (e2e)', () => {
   let app: INestApplication<App>;
+  let adminToken: string;
   const createdSliderIds: string[] = [];
 
   const publicUrl = '/api/v1/promo-slider';
@@ -45,12 +47,14 @@ describe('PromoSlider (e2e)', () => {
       defaultVersion: '1',
     });
     await app.init();
+    adminToken = await loginAsAdmin(app);
   });
 
   afterEach(async () => {
     for (const id of createdSliderIds.splice(0)) {
       await request(app.getHttpServer())
         .delete(`${adminUrl}/${id}`)
+          .set('Authorization', `Bearer ${adminToken}`)
         .catch(() => undefined);
     }
 
@@ -73,6 +77,7 @@ describe('PromoSlider (e2e)', () => {
     it('should return list of active promo sliders', async () => {
       const createResponse = await request(app.getHttpServer())
         .post(adminUrl)
+          .set('Authorization', `Bearer ${adminToken}`)
         .send({
           title: 'Promo list test',
           imageUrl: mockImageUrl,
@@ -102,6 +107,7 @@ describe('PromoSlider (e2e)', () => {
     it('should return an active promo slider by id', async () => {
       const createResponse = await request(app.getHttpServer())
         .post(adminUrl)
+          .set('Authorization', `Bearer ${adminToken}`)
         .send({
           title: 'Promo for public get',
           imageUrl: mockImageUrl,
@@ -127,6 +133,7 @@ describe('PromoSlider (e2e)', () => {
     it('should return 404 for inactive promo slider on public endpoint', async () => {
       const createResponse = await request(app.getHttpServer())
         .post(adminUrl)
+          .set('Authorization', `Bearer ${adminToken}`)
         .send({
           title: 'Inactive promo',
           imageUrl: mockImageUrl,
@@ -152,6 +159,7 @@ describe('PromoSlider (e2e)', () => {
 
       const response = await request(app.getHttpServer())
         .post(adminUrl)
+          .set('Authorization', `Bearer ${adminToken}`)
         .send(payload)
         .expect(201);
       trackSlider(response.body.data.id);
@@ -169,6 +177,7 @@ describe('PromoSlider (e2e)', () => {
     it('should return a promo slider by id with admin fields', async () => {
       const createResponse = await request(app.getHttpServer())
         .post(adminUrl)
+          .set('Authorization', `Bearer ${adminToken}`)
         .send({
           title: 'Promo for admin get',
           imageUrl: mockImageUrl,
@@ -181,6 +190,7 @@ describe('PromoSlider (e2e)', () => {
 
       const response = await request(app.getHttpServer())
         .get(`${adminUrl}/${sliderId}`)
+          .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
       expect(response.body.data).toMatchObject({
@@ -197,6 +207,7 @@ describe('PromoSlider (e2e)', () => {
     it('should update a promo slider by id', async () => {
       const createResponse = await request(app.getHttpServer())
         .post(adminUrl)
+          .set('Authorization', `Bearer ${adminToken}`)
         .send({
           title: 'Promo to update',
           imageUrl: mockImageUrl,
@@ -209,6 +220,7 @@ describe('PromoSlider (e2e)', () => {
 
       const response = await request(app.getHttpServer())
         .patch(`${adminUrl}/${sliderId}`)
+          .set('Authorization', `Bearer ${adminToken}`)
         .send({
           title: 'Promo updated',
           href: '/categories/handphone',
@@ -228,6 +240,7 @@ describe('PromoSlider (e2e)', () => {
     it('should remove a promo slider by id', async () => {
       const createResponse = await request(app.getHttpServer())
         .post(adminUrl)
+          .set('Authorization', `Bearer ${adminToken}`)
         .send({
           title: 'Promo to delete',
           imageUrl: mockImageUrl,
@@ -240,10 +253,12 @@ describe('PromoSlider (e2e)', () => {
 
       await request(app.getHttpServer())
         .delete(`${adminUrl}/${sliderId}`)
+          .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
       await request(app.getHttpServer())
         .get(`${adminUrl}/${sliderId}`)
+          .set('Authorization', `Bearer ${adminToken}`)
         .expect(404);
     });
   });

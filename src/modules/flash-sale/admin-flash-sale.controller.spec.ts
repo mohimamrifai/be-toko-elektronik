@@ -1,4 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
+import { RolesGuard } from '../auth/roles.guard.js';
 import { AdminFlashSaleController } from './admin-flash-sale.controller.js';
 import { CreateFlashSaleDto } from './dto/create-flash-sale.dto.js';
 import { SyncFlashSaleProductsDto } from './dto/sync-flash-sale-products.dto.js';
@@ -39,7 +41,12 @@ describe('AdminFlashSaleController', () => {
           useValue: mockFlashSaleService,
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<AdminFlashSaleController>(AdminFlashSaleController);
     service = module.get<FlashSaleService>(FlashSaleService);

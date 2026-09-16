@@ -4,6 +4,7 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module.js';
 import { TransformInterceptor } from '../src/common/interceptors/transform.interceptor.js';
+import { loginAsAdmin } from './helpers/admin-auth.helper.js';
 import { cleanupProductFixture } from './helpers/e2e-artifact-cleanup.helper.js';
 import {
   ensureSeedFlashSaleActive,
@@ -19,6 +20,7 @@ import {
 
 describe('FlashSale (e2e)', () => {
   let app: INestApplication<App>;
+  let adminToken: string;
   const seededProducts: SeededProductData[] = [];
   const createdFlashSaleIds: string[] = [];
 
@@ -46,6 +48,7 @@ describe('FlashSale (e2e)', () => {
     const includeSeed = options?.includeSeed ?? false;
     const listResponse = await request(app.getHttpServer())
       .get(adminUrl)
+        .set('Authorization', `Bearer ${adminToken}`)
       .expect(200);
 
     for (const flashSale of listResponse.body.data) {
@@ -61,6 +64,7 @@ describe('FlashSale (e2e)', () => {
 
       await request(app.getHttpServer())
         .patch(`${adminUrl}/${flashSale.id}`)
+          .set('Authorization', `Bearer ${adminToken}`)
         .send({ isActive: false })
         .expect(200);
     }
@@ -79,12 +83,14 @@ describe('FlashSale (e2e)', () => {
       defaultVersion: '1',
     });
     await app.init();
+    adminToken = await loginAsAdmin(app);
   });
 
   afterEach(async () => {
     for (const id of createdFlashSaleIds.splice(0)) {
       await request(app.getHttpServer())
         .delete(`${adminUrl}/${id}`)
+          .set('Authorization', `Bearer ${adminToken}`)
         .catch(() => undefined);
     }
 
@@ -118,6 +124,7 @@ describe('FlashSale (e2e)', () => {
 
       const createResponse = await request(app.getHttpServer())
         .post(adminUrl)
+          .set('Authorization', `Bearer ${adminToken}`)
         .send({
           name: 'Flash Sale Active',
           startsAt: window.startsAt,
@@ -166,6 +173,7 @@ describe('FlashSale (e2e)', () => {
 
       const createResponse = await request(app.getHttpServer())
         .post(adminUrl)
+          .set('Authorization', `Bearer ${adminToken}`)
         .send({
           name: 'Future flash sale',
           startsAt: new Date(now + 2 * 60 * 60 * 1000).toISOString(),
@@ -187,6 +195,7 @@ describe('FlashSale (e2e)', () => {
 
       const response = await request(app.getHttpServer())
         .post(adminUrl)
+          .set('Authorization', `Bearer ${adminToken}`)
         .send({
           name: 'Flash Sale Create',
           startsAt: window.startsAt,
@@ -222,6 +231,7 @@ describe('FlashSale (e2e)', () => {
 
       const createResponse = await request(app.getHttpServer())
         .post(adminUrl)
+          .set('Authorization', `Bearer ${adminToken}`)
         .send({
           name: 'Flash Sale Admin List',
           startsAt: window.startsAt,
@@ -232,6 +242,7 @@ describe('FlashSale (e2e)', () => {
 
       const response = await request(app.getHttpServer())
         .get(adminUrl)
+          .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
       expect(response.body.data).toEqual(
@@ -253,6 +264,7 @@ describe('FlashSale (e2e)', () => {
 
       const createResponse = await request(app.getHttpServer())
         .post(adminUrl)
+          .set('Authorization', `Bearer ${adminToken}`)
         .send({
           name: 'Flash Sale Detail',
           startsAt: window.startsAt,
@@ -272,6 +284,7 @@ describe('FlashSale (e2e)', () => {
 
       const response = await request(app.getHttpServer())
         .get(`${adminUrl}/${flashSaleId}`)
+          .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
       expect(response.body.data).toMatchObject({
@@ -288,6 +301,7 @@ describe('FlashSale (e2e)', () => {
 
       const createResponse = await request(app.getHttpServer())
         .post(adminUrl)
+          .set('Authorization', `Bearer ${adminToken}`)
         .send({
           name: 'Flash Sale To Update',
           startsAt: window.startsAt,
@@ -300,6 +314,7 @@ describe('FlashSale (e2e)', () => {
 
       const response = await request(app.getHttpServer())
         .patch(`${adminUrl}/${flashSaleId}`)
+          .set('Authorization', `Bearer ${adminToken}`)
         .send({
           name: 'Flash Sale Updated',
           isActive: false,
@@ -322,6 +337,7 @@ describe('FlashSale (e2e)', () => {
 
       const createResponse = await request(app.getHttpServer())
         .post(adminUrl)
+          .set('Authorization', `Bearer ${adminToken}`)
         .send({
           name: 'Flash Sale Sync Products',
           startsAt: window.startsAt,
@@ -334,6 +350,7 @@ describe('FlashSale (e2e)', () => {
 
       const response = await request(app.getHttpServer())
         .put(`${adminUrl}/${flashSaleId}/products`)
+          .set('Authorization', `Bearer ${adminToken}`)
         .send({
           products: [
             {
@@ -364,6 +381,7 @@ describe('FlashSale (e2e)', () => {
 
       const createResponse = await request(app.getHttpServer())
         .post(adminUrl)
+          .set('Authorization', `Bearer ${adminToken}`)
         .send({
           name: 'Flash Sale Item Update',
           startsAt: window.startsAt,
@@ -384,6 +402,7 @@ describe('FlashSale (e2e)', () => {
 
       const response = await request(app.getHttpServer())
         .patch(`${adminUrl}/${flashSaleId}/products/${itemId}`)
+          .set('Authorization', `Bearer ${adminToken}`)
         .send({
           soldCount: 8,
         })
@@ -404,6 +423,7 @@ describe('FlashSale (e2e)', () => {
 
       const createResponse = await request(app.getHttpServer())
         .post(adminUrl)
+          .set('Authorization', `Bearer ${adminToken}`)
         .send({
           name: 'Flash Sale Remove Item',
           startsAt: window.startsAt,
@@ -424,6 +444,7 @@ describe('FlashSale (e2e)', () => {
 
       const response = await request(app.getHttpServer())
         .delete(`${adminUrl}/${flashSaleId}/products/${itemId}`)
+          .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
       expect(response.body.data.products).toHaveLength(0);
@@ -436,6 +457,7 @@ describe('FlashSale (e2e)', () => {
 
       const createResponse = await request(app.getHttpServer())
         .post(adminUrl)
+          .set('Authorization', `Bearer ${adminToken}`)
         .send({
           name: 'Flash Sale To Delete',
           startsAt: window.startsAt,
@@ -448,10 +470,12 @@ describe('FlashSale (e2e)', () => {
 
       await request(app.getHttpServer())
         .delete(`${adminUrl}/${flashSaleId}`)
+          .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
       await request(app.getHttpServer())
         .get(`${adminUrl}/${flashSaleId}`)
+          .set('Authorization', `Bearer ${adminToken}`)
         .expect(404);
     });
   });

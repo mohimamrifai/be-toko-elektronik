@@ -7,7 +7,11 @@ import {
   Patch,
   Post,
   Put,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
+import { Roles } from '../auth/roles.decorator.js';
+import { RolesGuard } from '../auth/roles.guard.js';
 import { CreateFlashSaleDto } from './dto/create-flash-sale.dto.js';
 import { SyncFlashSaleProductsDto } from './dto/sync-flash-sale-products.dto.js';
 import { UpdateFlashSaleDto } from './dto/update-flash-sale.dto.js';
@@ -15,6 +19,8 @@ import { UpdateFlashSaleProductDto } from './dto/update-flash-sale-product.dto.j
 import { FlashSaleService } from './flash-sale.service.js';
 
 @Controller('admin/flash-sales')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('admin')
 export class AdminFlashSaleController {
   constructor(private readonly flashSaleService: FlashSaleService) {}
 

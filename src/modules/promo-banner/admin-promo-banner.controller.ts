@@ -6,12 +6,18 @@ import {
   Param,
   Patch,
   Post,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
+import { Roles } from '../auth/roles.decorator.js';
+import { RolesGuard } from '../auth/roles.guard.js';
 import { CreatePromoBannerDto } from './dto/create-promo-banner.dto.js';
 import { UpdatePromoBannerDto } from './dto/update-promo-banner.dto.js';
 import { PromoBannerService } from './promo-banner.service.js';
 
 @Controller('admin/promo-banners')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('admin')
 export class AdminPromoBannerController {
   constructor(private readonly promoBannerService: PromoBannerService) {}
 

@@ -1,4 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
+import { RolesGuard } from '../auth/roles.guard.js';
 import { AdminTopBannerController } from './admin-top-banner.controller.js';
 import { CreateTopBannerDto } from './dto/create-top-banner.dto.js';
 import { UpdateTopBannerDto } from './dto/update-top-banner.dto.js';
@@ -37,7 +39,12 @@ describe('AdminTopBannerController', () => {
           useValue: mockTopBannerService,
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<AdminTopBannerController>(AdminTopBannerController);
     service = module.get<TopBannerService>(TopBannerService);

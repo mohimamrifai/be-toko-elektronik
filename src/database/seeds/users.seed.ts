@@ -29,6 +29,16 @@ export async function seedUsers(db: Database) {
       .limit(1);
 
     if (existing) {
+      if (seedUser.role === 'admin') {
+        await db
+          .update(users)
+          .set({
+            role: 'admin',
+            passwordHash: await hash(seedUser.password, 10),
+          })
+          .where(eq(users.email, seedUser.email));
+      }
+
       continue;
     }
 

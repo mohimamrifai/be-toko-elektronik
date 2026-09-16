@@ -1,4 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
+import { RolesGuard } from '../auth/roles.guard.js';
 import { AdminPromoSliderController } from './admin-promo-slider.controller.js';
 import { CreatePromoSliderDto } from './dto/create-promo-slider.dto.js';
 import { UpdatePromoSliderDto } from './dto/update-promo-slider.dto.js';
@@ -38,7 +40,12 @@ describe('AdminPromoSliderController', () => {
           useValue: mockPromoSliderService,
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<AdminPromoSliderController>(
       AdminPromoSliderController,

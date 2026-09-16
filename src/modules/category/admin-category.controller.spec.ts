@@ -1,4 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
+import { RolesGuard } from '../auth/roles.guard.js';
 import { AdminCategoryController } from './admin-category.controller.js';
 import { CategoryService } from './category.service.js';
 import { CreateCategoryDto } from './dto/create-category.dto.js';
@@ -37,7 +39,12 @@ describe('AdminCategoryController', () => {
           useValue: mockCategoryService,
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<AdminCategoryController>(AdminCategoryController);
     service = module.get<CategoryService>(CategoryService);

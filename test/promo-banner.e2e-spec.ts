@@ -4,9 +4,11 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module.js';
 import { TransformInterceptor } from '../src/common/interceptors/transform.interceptor.js';
+import { loginAsAdmin } from './helpers/admin-auth.helper.js';
 
 describe('PromoBanner (e2e)', () => {
   let app: INestApplication<App>;
+  let adminToken: string;
   const createdBannerIds: string[] = [];
 
   const publicUrl = '/api/v1/promo-banners';
@@ -38,12 +40,14 @@ describe('PromoBanner (e2e)', () => {
       defaultVersion: '1',
     });
     await app.init();
+    adminToken = await loginAsAdmin(app);
   });
 
   afterEach(async () => {
     for (const id of createdBannerIds.splice(0)) {
       await request(app.getHttpServer())
         .delete(`${adminUrl}/${id}`)
+          .set('Authorization', `Bearer ${adminToken}`)
         .catch(() => undefined);
     }
 
@@ -54,6 +58,7 @@ describe('PromoBanner (e2e)', () => {
     it('should return list of active promo banners', async () => {
       const createResponse = await request(app.getHttpServer())
         .post(adminUrl)
+          .set('Authorization', `Bearer ${adminToken}`)
         .send({
           ...samplePayload,
           title: `Promo list ${Date.now()}`,
@@ -83,6 +88,7 @@ describe('PromoBanner (e2e)', () => {
     it('should return an active promo banner by id', async () => {
       const createResponse = await request(app.getHttpServer())
         .post(adminUrl)
+          .set('Authorization', `Bearer ${adminToken}`)
         .send({
           ...samplePayload,
           title: 'Promo for public get',
@@ -106,6 +112,7 @@ describe('PromoBanner (e2e)', () => {
     it('should return 404 for inactive promo banner on public endpoint', async () => {
       const createResponse = await request(app.getHttpServer())
         .post(adminUrl)
+          .set('Authorization', `Bearer ${adminToken}`)
         .send({
           ...samplePayload,
           title: 'Inactive promo banner',
@@ -124,6 +131,7 @@ describe('PromoBanner (e2e)', () => {
     it('should create a promo banner', async () => {
       const response = await request(app.getHttpServer())
         .post(adminUrl)
+          .set('Authorization', `Bearer ${adminToken}`)
         .send(samplePayload)
         .expect(201);
       trackBanner(response.body.data.id);
@@ -140,6 +148,7 @@ describe('PromoBanner (e2e)', () => {
     it('should return all promo banners including inactive', async () => {
       const createResponse = await request(app.getHttpServer())
         .post(adminUrl)
+          .set('Authorization', `Bearer ${adminToken}`)
         .send({
           ...samplePayload,
           title: 'Inactive admin list',
@@ -150,6 +159,7 @@ describe('PromoBanner (e2e)', () => {
 
       const response = await request(app.getHttpServer())
         .get(adminUrl)
+          .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
       expect(response.body.data).toEqual(
@@ -167,6 +177,7 @@ describe('PromoBanner (e2e)', () => {
     it('should return a promo banner by id with admin fields', async () => {
       const createResponse = await request(app.getHttpServer())
         .post(adminUrl)
+          .set('Authorization', `Bearer ${adminToken}`)
         .send({
           ...samplePayload,
           title: 'Promo for admin get',
@@ -178,6 +189,7 @@ describe('PromoBanner (e2e)', () => {
 
       const response = await request(app.getHttpServer())
         .get(`${adminUrl}/${bannerId}`)
+          .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
       expect(response.body.data).toMatchObject({
@@ -190,6 +202,7 @@ describe('PromoBanner (e2e)', () => {
     it('should return 404 when promo banner not found', () => {
       return request(app.getHttpServer())
         .get(`${adminUrl}/00000000-0000-0000-0000-000000000000`)
+          .set('Authorization', `Bearer ${adminToken}`)
         .expect(404);
     });
   });
@@ -198,6 +211,7 @@ describe('PromoBanner (e2e)', () => {
     it('should update a promo banner by id', async () => {
       const createResponse = await request(app.getHttpServer())
         .post(adminUrl)
+          .set('Authorization', `Bearer ${adminToken}`)
         .send({
           ...samplePayload,
           title: 'Promo to update',
@@ -209,6 +223,7 @@ describe('PromoBanner (e2e)', () => {
 
       const response = await request(app.getHttpServer())
         .patch(`${adminUrl}/${bannerId}`)
+          .set('Authorization', `Bearer ${adminToken}`)
         .send({
           title: 'Promo updated',
         })
@@ -223,6 +238,7 @@ describe('PromoBanner (e2e)', () => {
     it('should toggle promo banner active status', async () => {
       const createResponse = await request(app.getHttpServer())
         .post(adminUrl)
+          .set('Authorization', `Bearer ${adminToken}`)
         .send({
           ...samplePayload,
           title: 'Promo to toggle',
@@ -234,6 +250,7 @@ describe('PromoBanner (e2e)', () => {
 
       const response = await request(app.getHttpServer())
         .patch(`${adminUrl}/${bannerId}`)
+          .set('Authorization', `Bearer ${adminToken}`)
         .send({
           isActive: false,
         })
@@ -254,6 +271,7 @@ describe('PromoBanner (e2e)', () => {
     it('should remove a promo banner by id', async () => {
       const createResponse = await request(app.getHttpServer())
         .post(adminUrl)
+          .set('Authorization', `Bearer ${adminToken}`)
         .send({
           ...samplePayload,
           title: 'Promo to delete',
@@ -265,10 +283,12 @@ describe('PromoBanner (e2e)', () => {
 
       await request(app.getHttpServer())
         .delete(`${adminUrl}/${bannerId}`)
+          .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
       await request(app.getHttpServer())
         .get(`${adminUrl}/${bannerId}`)
+          .set('Authorization', `Bearer ${adminToken}`)
         .expect(404);
     });
   });

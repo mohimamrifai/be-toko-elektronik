@@ -4,9 +4,11 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module.js';
 import { TransformInterceptor } from '../src/common/interceptors/transform.interceptor.js';
+import { loginAsAdmin } from './helpers/admin-auth.helper.js';
 
 describe('Category (e2e)', () => {
   let app: INestApplication<App>;
+  let adminToken: string;
   const createdCategoryIds: string[] = [];
 
   const publicUrl = '/api/v1/categories';
@@ -29,12 +31,14 @@ describe('Category (e2e)', () => {
       defaultVersion: '1',
     });
     await app.init();
+    adminToken = await loginAsAdmin(app);
   });
 
   afterEach(async () => {
     for (const id of createdCategoryIds.splice(0)) {
       await request(app.getHttpServer())
         .delete(`${adminUrl}/${id}`)
+          .set('Authorization', `Bearer ${adminToken}`)
         .catch(() => undefined);
     }
 
@@ -45,6 +49,7 @@ describe('Category (e2e)', () => {
     it('should return list of active categories', async () => {
       const createResponse = await request(app.getHttpServer())
         .post(adminUrl)
+          .set('Authorization', `Bearer ${adminToken}`)
         .send({
           name: 'Handphone',
           slug: `handphone-${Date.now()}`,
@@ -74,6 +79,7 @@ describe('Category (e2e)', () => {
     it('should return an active category by id', async () => {
       const createResponse = await request(app.getHttpServer())
         .post(adminUrl)
+          .set('Authorization', `Bearer ${adminToken}`)
         .send({
           name: 'Laptop',
           slug: `laptop-${Date.now()}`,
@@ -99,6 +105,7 @@ describe('Category (e2e)', () => {
     it('should return 404 for inactive category on public endpoint', async () => {
       const createResponse = await request(app.getHttpServer())
         .post(adminUrl)
+          .set('Authorization', `Bearer ${adminToken}`)
         .send({
           name: 'Inactive category',
           slug: `inactive-${Date.now()}`,
@@ -124,6 +131,7 @@ describe('Category (e2e)', () => {
 
       const response = await request(app.getHttpServer())
         .post(adminUrl)
+          .set('Authorization', `Bearer ${adminToken}`)
         .send(payload)
         .expect(201);
       trackCategory(response.body.data.id);
@@ -140,6 +148,7 @@ describe('Category (e2e)', () => {
     it('should return all categories including inactive', async () => {
       const createResponse = await request(app.getHttpServer())
         .post(adminUrl)
+          .set('Authorization', `Bearer ${adminToken}`)
         .send({
           name: 'Inactive admin list',
           slug: `inactive-admin-${Date.now()}`,
@@ -150,6 +159,7 @@ describe('Category (e2e)', () => {
 
       const response = await request(app.getHttpServer())
         .get(adminUrl)
+          .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
       expect(response.body.data).toEqual(
@@ -167,6 +177,7 @@ describe('Category (e2e)', () => {
     it('should return a category by id with admin fields', async () => {
       const createResponse = await request(app.getHttpServer())
         .post(adminUrl)
+          .set('Authorization', `Bearer ${adminToken}`)
         .send({
           name: 'Category for admin get',
           slug: `admin-get-${Date.now()}`,
@@ -178,6 +189,7 @@ describe('Category (e2e)', () => {
 
       const response = await request(app.getHttpServer())
         .get(`${adminUrl}/${categoryId}`)
+          .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
       expect(response.body.data).toMatchObject({
@@ -190,6 +202,7 @@ describe('Category (e2e)', () => {
     it('should return 404 when category not found', () => {
       return request(app.getHttpServer())
         .get(`${adminUrl}/00000000-0000-0000-0000-000000000000`)
+          .set('Authorization', `Bearer ${adminToken}`)
         .expect(404);
     });
   });
@@ -198,6 +211,7 @@ describe('Category (e2e)', () => {
     it('should update a category by id', async () => {
       const createResponse = await request(app.getHttpServer())
         .post(adminUrl)
+          .set('Authorization', `Bearer ${adminToken}`)
         .send({
           name: 'Category to update',
           slug: `to-update-${Date.now()}`,
@@ -209,6 +223,7 @@ describe('Category (e2e)', () => {
 
       const response = await request(app.getHttpServer())
         .patch(`${adminUrl}/${categoryId}`)
+          .set('Authorization', `Bearer ${adminToken}`)
         .send({
           name: 'Category updated',
         })
@@ -223,6 +238,7 @@ describe('Category (e2e)', () => {
     it('should toggle category active status', async () => {
       const createResponse = await request(app.getHttpServer())
         .post(adminUrl)
+          .set('Authorization', `Bearer ${adminToken}`)
         .send({
           name: 'Category to toggle',
           slug: `to-toggle-${Date.now()}`,
@@ -234,6 +250,7 @@ describe('Category (e2e)', () => {
 
       const response = await request(app.getHttpServer())
         .patch(`${adminUrl}/${categoryId}`)
+          .set('Authorization', `Bearer ${adminToken}`)
         .send({
           isActive: false,
         })
@@ -254,6 +271,7 @@ describe('Category (e2e)', () => {
     it('should remove a category by id', async () => {
       const createResponse = await request(app.getHttpServer())
         .post(adminUrl)
+          .set('Authorization', `Bearer ${adminToken}`)
         .send({
           name: 'Category to delete',
           slug: `to-delete-${Date.now()}`,
@@ -265,10 +283,12 @@ describe('Category (e2e)', () => {
 
       await request(app.getHttpServer())
         .delete(`${adminUrl}/${categoryId}`)
+          .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
       await request(app.getHttpServer())
         .get(`${adminUrl}/${categoryId}`)
+          .set('Authorization', `Bearer ${adminToken}`)
         .expect(404);
     });
   });
