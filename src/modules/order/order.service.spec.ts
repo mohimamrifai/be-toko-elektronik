@@ -1,6 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DRIZZLE } from '../../database/database.constants.js';
+import { MailService } from '../mail/mail.service.js';
 import { PromoService } from '../promo/promo.service.js';
 import { OrderService } from './order.service.js';
 
@@ -37,6 +38,12 @@ describe('OrderService', () => {
     validateForCart: vi.fn(),
   };
 
+  const mockMailService = {
+    getOrderDetailUrl: vi.fn(() => 'http://localhost:3000/orders/order-id'),
+    sendOrderConfirmationEmail: vi.fn(),
+    sendOrderShippedEmail: vi.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -48,6 +55,10 @@ describe('OrderService', () => {
         {
           provide: PromoService,
           useValue: mockPromoService,
+        },
+        {
+          provide: MailService,
+          useValue: mockMailService,
         },
       ],
     }).compile();

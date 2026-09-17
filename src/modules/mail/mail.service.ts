@@ -1,6 +1,25 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import nodemailer from 'nodemailer';
+import type {
+  OrderConfirmationMailPayload,
+  OrderShippedMailPayload,
+  PaymentReceivedMailPayload,
+} from './mail.types.js';
+import {
+  buildOrderConfirmationMail,
+  buildOrderShippedMail,
+  buildPasswordResetMail,
+  buildPaymentReceivedMail,
+} from './templates/transactional-mail.templates.js';
+
+type SendMailOptions = {
+  to: string;
+  subject: string;
+  text: string;
+  html: string;
+  logContext: string;
+};
 
 @Injectable()
 export class MailService {
@@ -24,14 +43,21 @@ export class MailService {
     );
   }
 
-  async sendPasswordResetEmail(email: string, token: string) {
-    const resetUrl = `${this.getFrontendUrl()}/reset-password?token=${encodeURIComponent(token)}`;
-    const subject = 'Reset Password TokoElektronik';
-    const text = `Anda menerima email ini karena ada permintaan reset password.\n\nBuka tautan berikut untuk mengatur ulang password Anda:\n${resetUrl}\n\nTautan berlaku 1 jam. Jika Anda tidak meminta reset password, abaikan email ini.`;
+  getOrderDetailUrl(orderId: string) {
+    return `${this.getFrontendUrl()}/orders/${orderId}`;
+  }
 
+  private getMailFrom() {
+    return (
+      this.configService.get<string>('MAIL_FROM') ??
+      'noreply@tokoelektronik.com'
+    );
+  }
+
+  private async sendMail(options: SendMailOptions) {
     if (!this.isSmtpConfigured()) {
       this.logger.log(
-        `Password reset token for ${email}: ${token} (reset URL: ${resetUrl})`,
+        `[${options.logContext}] Email to ${options.to}\nSubject: ${options.subject}\n${options.text}`,
       );
       return;
     }
@@ -47,12 +73,60 @@ export class MailService {
     });
 
     await transporter.sendMail({
-      from:
-        this.configService.get<string>('MAIL_FROM') ??
-        'noreply@tokoelektronik.com',
+      from: this.getMailFrom(),
+      to: options.to,
+      subject: options.subject,
+      text: options.text,
+      html: options.html,
+    });
+  }
+
+  async sendPasswordResetEmail(email: string, token: string) {
+    const resetUrl = `${this.getFrontendUrl()}/reset-password?token=${encodeURIComponent(token)}`;
+    const mail = buildPasswordResetMail(resetUrl);
+
+    await this.sendMail({
       to: email,
-      subject,
-      text,
+      subject: mail.subject,
+      text: mail.text,
+      html: mail.html,
+      logContext: 'password-reset',
+    });
+  }
+
+  async sendOrderConfirmationEmail(payload: OrderConfirmationMailPayload) {
+    const mail = buildOrderConfirmationMail(payload);
+
+    await this.sendMail({
+      to: payload.to,
+      subject: mail.subject,
+      text: mail.text,
+      html: mail.html,
+      logContext: 'order-confirmation',
+    });
+  }
+
+  async sendPaymentReceivedEmail(payload: PaymentReceivedMailPayload) {
+    const mail = buildPaymentReceivedMail(payload);
+
+    await this.sendMail({
+      to: payload.to,
+      subject: mail.subject,
+      text: mail.text,
+      html: mail.html,
+      logContext: 'payment-received',
+    });
+  }
+
+  async sendOrderShippedEmail(payload: OrderShippedMailPayload) {
+    const mail = buildOrderShippedMail(payload);
+
+    await this.sendMail({
+      to: payload.to,
+      subject: mail.subject,
+      text: mail.text,
+      html: mail.html,
+      logContext: 'order-shipped',
     });
   }
 }

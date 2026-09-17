@@ -14,7 +14,9 @@ import {
   orderStatusHistory,
 } from '../../database/schema/orders.schema.js';
 import { payments } from '../../database/schema/payments.schema.js';
+import { users } from '../../database/schema/users.schema.js';
 import type { PublicUser } from '../auth/auth.types.js';
+import { MailService } from '../mail/mail.service.js';
 import {
   MidtransNotificationPayload,
   MidtransService,
@@ -33,6 +35,7 @@ export class PaymentService {
   constructor(
     @Inject(DRIZZLE) private readonly db: Database,
     private readonly midtransService: MidtransService,
+    private readonly mailService: MailService,
   ) {}
 
   private buildMidtransOrderId(orderNumber: string) {
@@ -215,6 +218,30 @@ export class PaymentService {
           status: 'paid',
           note: 'Pembayaran diterima',
         });
+
+        const [orderData] = await this.db
+          .select({
+            orderNumber: orders.orderNumber,
+            total: orders.total,
+            customerName: users.name,
+            customerEmail: users.email,
+          })
+          .from(orders)
+          .leftJoin(users, eq(orders.userId, users.id))
+          .where(eq(orders.id, payment.orderId))
+          .limit(1);
+
+        if (orderData?.customerEmail) {
+          void this.mailService
+            .sendPaymentReceivedEmail({
+              to: orderData.customerEmail,
+              customerName: orderData.customerName ?? 'Pelanggan',
+              orderNumber: orderData.orderNumber,
+              total: toNumber(orderData.total),
+              orderUrl: this.mailService.getOrderDetailUrl(payment.orderId),
+            })
+            .catch(() => undefined);
+        }
       }
     }
 

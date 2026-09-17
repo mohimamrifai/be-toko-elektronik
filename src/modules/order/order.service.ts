@@ -18,6 +18,7 @@ import { productImages } from '../../database/schema/product-images.schema.js';
 import { productVariants } from '../../database/schema/product-variants.schema.js';
 import { products } from '../../database/schema/products.schema.js';
 import { users } from '../../database/schema/users.schema.js';
+import { MailService } from '../mail/mail.service.js';
 import { PromoService } from '../promo/promo.service.js';
 import { CheckoutDto } from './dto/checkout.dto.js';
 import { QueryAdminOrdersDto } from './dto/query-admin-orders.dto.js';
@@ -63,7 +64,60 @@ export class OrderService {
   constructor(
     @Inject(DRIZZLE) private readonly db: Database,
     private readonly promoService: PromoService,
+    private readonly mailService: MailService,
   ) {}
+
+  private async notifyOrderConfirmation(
+    userId: string,
+    orderId: string,
+    orderDetail: Awaited<ReturnType<OrderService['buildOrderDetail']>>,
+  ) {
+    const [user] = await this.db
+      .select({
+        name: users.name,
+        email: users.email,
+      })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (!user?.email) {
+      return;
+    }
+
+    await this.mailService.sendOrderConfirmationEmail({
+      to: user.email,
+      customerName: user.name,
+      orderNumber: orderDetail.orderNumber,
+      items: orderDetail.items.map((item) => ({
+        productName: item.productName,
+        quantity: item.quantity,
+        price: item.price,
+      })),
+      subtotal: orderDetail.subtotal,
+      shippingCost: orderDetail.shippingCost,
+      discountAmount: orderDetail.discountAmount,
+      total: orderDetail.total,
+      orderUrl: this.mailService.getOrderDetailUrl(orderId),
+    });
+  }
+
+  private async notifyOrderShipped(orderId: string) {
+    const orderDetail = await this.buildAdminOrderDetail(orderId);
+
+    if (!orderDetail.customer.email) {
+      return;
+    }
+
+    await this.mailService.sendOrderShippedEmail({
+      to: orderDetail.customer.email,
+      customerName: orderDetail.customer.name ?? 'Pelanggan',
+      orderNumber: orderDetail.orderNumber,
+      courier: orderDetail.courier,
+      trackingNumber: orderDetail.trackingNumber,
+      orderUrl: this.mailService.getOrderDetailUrl(orderId),
+    });
+  }
 
   private async getCartContext(userId: string, executor: DbExecutor = this.db) {
     const [cart] = await executor
@@ -448,7 +502,13 @@ export class OrderService {
       return order.id;
     });
 
-    return this.buildOrderDetail(userId, orderId);
+    const orderDetail = await this.buildOrderDetail(userId, orderId);
+
+    void this.notifyOrderConfirmation(userId, orderId, orderDetail).catch(
+      () => undefined,
+    );
+
+    return orderDetail;
   }
 
   async findAll(userId: string) {
@@ -651,7 +711,13 @@ export class OrderService {
       });
     });
 
-    return this.buildAdminOrderDetail(orderId);
+    const orderDetail = await this.buildAdminOrderDetail(orderId);
+
+    if (updateOrderStatusDto.status === 'shipped') {
+      void this.notifyOrderShipped(orderId).catch(() => undefined);
+    }
+
+    return orderDetail;
   }
 
   async updateShippingAdmin(
