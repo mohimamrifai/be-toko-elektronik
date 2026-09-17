@@ -18,6 +18,7 @@ import { productImages } from '../../database/schema/product-images.schema.js';
 import { productVariants } from '../../database/schema/product-variants.schema.js';
 import { products } from '../../database/schema/products.schema.js';
 import { users } from '../../database/schema/users.schema.js';
+import { PromoService } from '../promo/promo.service.js';
 import { CheckoutDto } from './dto/checkout.dto.js';
 import { QueryAdminOrdersDto } from './dto/query-admin-orders.dto.js';
 import { UpdateOrderShippingDto } from './dto/update-order-shipping.dto.js';
@@ -59,7 +60,10 @@ type DbExecutor = Pick<Database, 'select' | 'insert' | 'update' | 'delete'>;
 
 @Injectable()
 export class OrderService {
-  constructor(@Inject(DRIZZLE) private readonly db: Database) {}
+  constructor(
+    @Inject(DRIZZLE) private readonly db: Database,
+    private readonly promoService: PromoService,
+  ) {}
 
   private async getCartContext(userId: string, executor: DbExecutor = this.db) {
     const [cart] = await executor
@@ -364,7 +368,24 @@ export class OrderService {
       }
     }
 
-    const discountAmount = 0;
+    let discountAmount = 0;
+    let promoId: string | null = null;
+
+    if (checkoutDto.promoCode?.trim()) {
+      const promoResult = await this.promoService.validateForCart(
+        checkoutDto.promoCode,
+        cartContext.items.map((item) => ({
+          productId: item.productId,
+          price: item.price,
+          quantity: item.quantity,
+        })),
+        cartContext.subtotal,
+      );
+
+      discountAmount = promoResult.discountAmount;
+      promoId = promoResult.promoId;
+    }
+
     const total = cartContext.subtotal + shippingCost - discountAmount;
     const orderNumber = generateOrderNumber();
 
@@ -378,6 +399,7 @@ export class OrderService {
           subtotal: formatMoney(cartContext.subtotal),
           shippingCost: formatMoney(shippingCost),
           discountAmount: formatMoney(discountAmount),
+          promoId,
           total: formatMoney(total),
           status: 'pending',
           courier: checkoutDto.courier,

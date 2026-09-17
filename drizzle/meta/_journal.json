@@ -106,6 +106,13 @@
       "when": 1789545953189,
       "tag": "0014_stale_gertrude_yorkes",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1789625187028,
+      "tag": "0015_green_nova",
+      "breakpoints": true
     }
   ]
 }

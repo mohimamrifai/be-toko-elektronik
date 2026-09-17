@@ -12,6 +12,7 @@ import {
 import { addresses } from './addresses.schema.js';
 import { productVariants } from './product-variants.schema.js';
 import { products } from './products.schema.js';
+import { promos } from './promos.schema.js';
 import { users } from './users.schema.js';
 
 export const orderStatusEnum = pgEnum('order_status', [
@@ -37,6 +38,9 @@ export const orders = pgTable(
     discountAmount: decimal('discount_amount', { precision: 12, scale: 2 })
       .default('0')
       .notNull(),
+    promoId: uuid('promo_id').references(() => promos.id, {
+      onDelete: 'set null',
+    }),
     total: decimal('total', { precision: 12, scale: 2 }).notNull(),
     status: orderStatusEnum('status').default('pending').notNull(),
     courier: varchar('courier', { length: 50 }),

@@ -7,5 +7,6 @@ import { CartService } from './cart.service.js';
   imports: [AuthModule],
   controllers: [CartController],
   providers: [CartService],
+  exports: [CartService],
 })
 export class CartModule {}

@@ -1,6 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DRIZZLE } from '../../database/database.constants.js';
+import { PromoService } from '../promo/promo.service.js';
 import { OrderService } from './order.service.js';
 
 describe('OrderService', () => {
@@ -32,6 +33,10 @@ describe('OrderService', () => {
     transaction: vi.fn(),
   };
 
+  const mockPromoService = {
+    validateForCart: vi.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -39,6 +44,10 @@ describe('OrderService', () => {
         {
           provide: DRIZZLE,
           useValue: mockDb,
+        },
+        {
+          provide: PromoService,
+          useValue: mockPromoService,
         },
       ],
     }).compile();

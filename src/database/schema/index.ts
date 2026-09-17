@@ -17,3 +17,4 @@ export * from './wishlists.schema.js';
 export * from './reviews.schema.js';
 export * from './claims.schema.js';
 export * from './password-reset-tokens.schema.js';
+export * from './promos.schema.js';

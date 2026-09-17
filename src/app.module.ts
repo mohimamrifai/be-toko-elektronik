@@ -16,6 +16,7 @@ import { CategoryModule } from './modules/category/category.module.js';
 import { FlashSaleModule } from './modules/flash-sale/flash-sale.module.js';
 import { ProductModule } from './modules/product/product.module.js';
 import { PromoBannerModule } from './modules/promo-banner/promo-banner.module.js';
+import { PromoModule } from './modules/promo/promo.module.js';
 import { PromoSliderModule } from './modules/promo-slider/promo-slider.module.js';
 import { TopBannerModule } from './modules/top-banner/top-banner.module.js';
 import { StorageModule } from './storage/storage.module.js';
@@ -39,6 +40,7 @@ import { StorageModule } from './storage/storage.module.js';
     TopBannerModule,
     PromoSliderModule,
     PromoBannerModule,
+    PromoModule,
     CategoryModule,
     BrandModule,
     ProductModule,
